@@ -1,6 +1,6 @@
 # Mail Reply Engine: Rebuild Plan
 
-HR email agent for TCG. One dedicated mailbox, 7 use cases. The AI decides, our code acts, and HR stays in control on the dashboard.
+HR email agent for TCG. One dedicated mailbox , 7 use cases. The AI decides, our code acts, and HR stays in control on the dashboard.
 
 - Brief: `archive/HR Assistant claude clone.md`
 - Real mail samples: `archive/` (pre-onboarding and exit chains)
