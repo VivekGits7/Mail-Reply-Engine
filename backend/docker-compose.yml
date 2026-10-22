@@ -1,0 +1,66 @@
+services:
+  mail-reply-engine-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mail-reply-engine-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mail-reply-engine-redis
+    networks:
+      - mail-reply-engine-net
+      - mail-reply-engine-network
+    restart: unless-stopped
+
+  mail-reply-engine-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mail-reply-engine-worker
+    entrypoint: ["/app/.venv/bin/celery"]
+    command: ["-A", "app.worker.celery_app:celery_app", "worker", "-Q", "events,documents", "--concurrency", "4", "--loglevel", "INFO"]
+    env_file:
+      - .env
+    depends_on:
+      - mail-reply-engine-redis
+    networks:
+      - mail-reply-engine-net
+      - mail-reply-engine-network
+    restart: unless-stopped
+
+  mail-reply-engine-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mail-reply-engine-beat
+    entrypoint: ["/app/.venv/bin/celery"]
+    command: ["-A", "app.worker.celery_app:celery_app", "beat", "--loglevel", "INFO", "--schedule", "/tmp/celerybeat-schedule"]
+    env_file:
+      - .env
+    depends_on:
+      - mail-reply-engine-redis
+    networks:
+      - mail-reply-engine-net
+    restart: unless-stopped
+
+  mail-reply-engine-redis:
+    image: redis:8-alpine
+    container_name: mail-reply-engine-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - mail-reply-engine-net
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  mail-reply-engine-net:
+    driver: bridge
+  mail-reply-engine-network:
+    external: true

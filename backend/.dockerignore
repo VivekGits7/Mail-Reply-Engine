@@ -1,0 +1,13 @@
+.env
+.env.test
+logs/
+archive/
+.claude/
+tests/
+database/migrations/
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/

@@ -1,0 +1,55 @@
+name: mail-reply-engine-minio
+
+services:
+  minio:
+    image: ${MINIO_IMAGE:-cgr.dev/chainguard/minio:latest}
+    container_name: ${MINIO_CONTAINER_NAME:-mail-reply-engine-minio}
+    entrypoint: sh
+    command: -c 'minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY:?Set MINIO_KMS_SECRET_KEY in .env}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_CORS_ALLOW_ORIGIN:-http://localhost:3000}
+    ports:
+      - "${MINIO_API_BIND:-127.0.0.1}:${MINIO_API_PORT:-9100}:9000"
+      - "${MINIO_CONSOLE_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9101}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - minio-network
+    restart: unless-stopped
+
+  minio-init:
+    image: ${MINIO_IMAGE:-cgr.dev/chainguard/minio:latest}
+    container_name: ${MINIO_CONTAINER_NAME:-mail-reply-engine-minio}-init
+    entrypoint: sh
+    command: /init.sh
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_BUCKET: ${MINIO_BUCKET:-mail-reply-engine}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY in .env}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?Set MINIO_APP_SECRET_KEY in .env}
+    volumes:
+      - ./init.sh:/init.sh:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - minio-network
+    restart: "no"
+
+volumes:
+  minio-data:
+
+networks:
+  minio-network:
+    name: ${MINIO_NETWORK:-mail-reply-engine-network}
+    driver: bridge

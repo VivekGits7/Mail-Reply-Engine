@@ -1,0 +1,14 @@
+auth.sql
+runtime.sql
+people.sql
+cases.sql
+mail.sql
+worker.sql
+graph.sql
+llm.sql
+audit.sql
+admin.sql
+reminders.sql
+feedback.sql
+induction.sql
+complaints.sql

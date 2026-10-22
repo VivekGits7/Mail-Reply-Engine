@@ -1,0 +1,5 @@
+dist
+node_modules
+bun.lock
+src/components/ui
+src/types/schema.ts
