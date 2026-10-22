@@ -217,6 +217,7 @@ async def process_email(payload: Dict[str, Any], event: Optional[Event] = None) 
     if email is None:
         return
     await MailboxState.touch_email(settings.mailbox)
+    await Email.adopt_conversation(message.conversation_id, thread_message_ids(message))
     reason = junk_reason(message, settings.mailbox)
     if reason:
         await email.set_status("filtered", reason)

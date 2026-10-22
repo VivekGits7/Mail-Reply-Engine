@@ -97,6 +97,7 @@ async def test_reply_goes_into_the_same_thread(env):
 
 async def test_missing_recipient_is_dropped_not_sent(env):
     assert (await deliver(alert(to=[""]), "r1")).status == "dropped"
+    assert (await deliver(alert(to=[None], cc=[None]), "r2")).status == "dropped"
     assert env.graph.sent == []
 
 

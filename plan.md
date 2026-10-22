@@ -10,8 +10,9 @@ HR email agent for TCG. One dedicated mailbox, 7 use cases. The AI decides, our 
 
 ## 1. Locked decisions
 
-- Mail + calendar: Microsoft Graph only, using a webhook, a 2 min delta poll as backup, and auto renewal of the subscription.
-- Queue + scheduler: Redis + Celery worker + beat, with one event loop and DB pool per worker process.
+- Mail: Graph reads `HROperations@tcgdigital.com` through the "HR Automation" app (Mail.ReadWrite + Mail.Send), using a webhook, a 2 min delta poll as backup, and auto renewal of the subscription. Sending goes through Graph by default, or through the IT SMTP server (STARTTLS, port 587) when `MAIL_SEND_PROVIDER=smtp`.
+- Calendar: induction booking uses Graph and needs Calendars.ReadWrite on the app, which IT has not granted yet.
+- Queue + scheduler: Redis + Celery worker + beat, with one event loop and DB pool per worker process. For local runs, `EVENT_DISPATCH_MODE=inline` runs events, the mailbox poll and due jobs inside the API instead.
 - Files: self-hosted MinIO with a private bucket, SSE-S3 encryption at rest, 5 min presigned links, behind HTTPS.
 - Joiner data: the brief's 8 fields + DOB at creation; the rest of the onboarding template + Employee ID at sign-off.
 - Exit mails: one group mail to the offboarding group + manager, then follow-ups only to pending teams, Finance every 24h and others every 48h.
@@ -74,7 +75,7 @@ HR email agent for TCG. One dedicated mailbox, 7 use cases. The AI decides, our 
 
 ## 5. Code layout, `backend/app/`
 
-- Shared infra, importable by anyone: `config`, `database`, `error`, `logger`, `limiter`, `middleware`, `dependencies`, `common`, `storage` (MinIO), `graph` (mail, calendar, subscriptions), `llm` (`llm_client`, PII guard, request audit), `privacy` (Presidio masking, credential redaction, field encryption, blind indexes), `worker` (Celery app, `enqueue_event`, beat schedule, events, scheduled jobs), `runtime` (settings + holidays tables, cached kill switch, dry-run and sending window reads), `audit` (action log writer), `d365` (stub client)
+- Shared infra, importable by anyone: `config`, `database`, `error`, `logger`, `limiter`, `middleware`, `dependencies`, `common`, `storage` (MinIO), `graph` (mail, calendar, subscriptions), `smtp` (optional sender with threading headers), `llm` (`llm_client`, PII guard, request audit), `privacy` (Presidio masking, credential redaction, field encryption, blind indexes), `worker` (Celery app, `enqueue_event`, beat schedule, events, scheduled jobs), `runtime` (settings + holidays tables, cached kill switch, dry-run and sending window reads), `audit` (action log writer), `d365` (stub client)
 - Core features, which own their tables and never import each other: `auth`, `people`, `cases` (cases, tasks, checklist, approvals), `mail` (emails, attachments, templates, send pipeline), `documents` (extraction, readability, person check, salary guard), `ai` (AI helper functions), `admin` (admin APIs, checklist and induction templates)
 - Use cases, grouped in `app/workflows/`, which may import infra + core but never each other, and talk through events: `workflows/onboarding` (UC-DOC + UC-IT), `workflows/exits`, `workflows/reminders`, `workflows/feedback`, `workflows/induction`, `workflows/complaints`. Imports read `from app.workflows.exits import exits_router`.
 - Orchestrator: `engine` (event dispatcher, inbound email pipeline, scheduled job runner, query drafts, the full case view with its timeline). It is the only package that imports `app.workflows`.
@@ -143,6 +144,11 @@ mail-reply-engine/
 │   │   │   ├── excel.py              # Forms response workbook
 │   │   │   ├── model.py              # mailbox_state
 │   │   │   └── schemas.py
+│   │   ├── smtp/                     # optional sender when MAIL_SEND_PROVIDER=smtp
+│   │   │   ├── __init__.py
+│   │   │   ├── client.py             # STARTTLS or SSL login, send in a thread
+│   │   │   ├── mail.py               # MIME build, Message-ID, In-Reply-To, quoted reply
+│   │   │   └── schemas.py            # ReplyContext
 │   │   ├── llm/
 │   │   │   ├── __init__.py
 │   │   │   ├── client.py             # llm_client, the only file that talks to the AI model
@@ -160,6 +166,7 @@ mail-reply-engine/
 │   │   │   ├── beat.py               # cron schedule from 9.6
 │   │   │   ├── tasks.py              # thin tasks that call engine
 │   │   │   ├── events.py             # enqueue_event, dedupe, sweeper
+│   │   │   ├── inline.py             # poll + due jobs inside the API in inline mode
 │   │   │   └── model.py              # events, scheduled_jobs
 │   │   ├── runtime/                  # live settings, cached reads
 │   │   │   ├── __init__.py
@@ -292,6 +299,7 @@ mail-reply-engine/
 │   │
 │   ├── scripts/                      # run with guvrun
 │   │   ├── create_admin.py
+│   │   ├── check_mail.py             # checks Graph read, calendar access and SMTP login, can send one test mail
 │   │   ├── seed_defaults.py          # settings, templates, checklists, reminder rules
 │   │   ├── seed_test_data.py         # fake joiners, employees, exits for dry-run
 │   │   └── rotate_pii_keys.py        # re-encrypt personal data with a new key, in batches
@@ -455,7 +463,7 @@ Every table has a UUID `<name>_id` primary key plus `created_at` and `updated_at
 - On startup and every 12h: create or renew the Graph subscription on the dedicated inbox, renewing when under 24h is left. Mail subscriptions live about 3 days.
 - `POST /api/graph/notifications` checks `clientState`, enqueues `email.received` with the message id, and replies 202 at once.
 - `POST /api/graph/lifecycle` handles reauthorize, removed (recreate it) and missed (run a delta poll now).
-- Every 2 min, a delta query on the inbox catches anything the webhook missed.
+- Every 2 min, a delta query on the inbox catches anything the webhook missed. A new mailbox starts from now, so older inbox mail is never processed.
 - When the webhook and the poll see the same message, the event `dedupe_key` (Graph message id) makes sure it is processed once.
 
 ### 9.2 Event queue
@@ -499,6 +507,7 @@ Every table has a UUID `<name>_id` primary key plus `created_at` and `updated_at
 6. In dry-run, recipients are swapped for the test inbox and the subject gets the prefix `[DRY RUN to: original recipients]`, replies included.
 7. The outbound `emails` row is inserted with its `dedupe_key`. A conflict means it was already sent, so stop.
 8. Graph replies to the thread's last message, or creates a new draft, then attaches files, sends, and saves the message and conversation ids.
+   - With SMTP, the mail gets its own Message-ID, and replies carry In-Reply-To, References, the `RE:` subject and a quote of the last message. The Graph ids come from the mailbox copy found by Message-ID. When the SMTP server keeps no copy, the first reply that references the mail gives its conversation id, and follow-ups still thread on the Message-ID.
 9. The next follow-up is scheduled and the action log is written. Graph errors retry with backoff, then flag `failed_action` on the case.
 
 ### 9.5 Follow-up rules, for every use case
@@ -1737,8 +1746,8 @@ Receives subscription lifecycle events from Microsoft.
 - Appraisal stage deadlines and the training list
 - D365 API access
 - Security approval to read document content
-- A Graph app registration (client id + secret) restricted to the dedicated mailbox, plus a test mailbox
-- A public HTTPS URL for the Graph webhook. Without it we run on polling only.
+- Calendars.ReadWrite on the "HR Automation" app for induction booking, plus a test mailbox for dry-run
+- A public HTTPS URL for the Graph webhook. The DS sandbox IP has no domain or certificate, so we run on polling only until one exists.
 - How long candidate documents are kept after onboarding closes
 
 ## 15. Out of scope for this build

@@ -111,6 +111,15 @@ class GraphException(AppException):
         super().__init__(status_code=502, detail=detail, error_code=error_code)
 
 
+class MailSendException(AppException):
+    def __init__(
+        self,
+        detail: str = "The SMTP server did not accept the email",
+        error_code: str = "MAIL_SEND_ERROR",
+    ):
+        super().__init__(status_code=502, detail=detail, error_code=error_code)
+
+
 class StorageException(AppException):
     def __init__(
         self,
@@ -140,6 +149,7 @@ def validate_uuid(*values: tuple[str, str]) -> None:
 USER_FRIENDLY_MESSAGES = {
     "AI_SERVICE_ERROR": "The AI assistant is unavailable right now. Please try again shortly.",
     "GRAPH_ERROR": "The mailbox service is unavailable right now. Please try again shortly.",
+    "MAIL_SEND_ERROR": "The email could not be sent right now. Please try again shortly.",
     "STORAGE_ERROR": "File storage is unavailable right now. Please try again shortly.",
     "EXTERNAL_SERVICE_ERROR": "Service temporarily unavailable. Please try again later.",
     "DATABASE_ERROR": "Something went wrong. Please try again later.",

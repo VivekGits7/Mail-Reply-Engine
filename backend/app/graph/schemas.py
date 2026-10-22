@@ -46,7 +46,10 @@ class GraphAttachment(BaseModel):
 
 
 class SentMail(BaseModel):
-    graph_message_id: str = Field(..., description="Immutable id of the sent message")
+    graph_message_id: Optional[str] = Field(
+        default=None,
+        description="Immutable id of the sent message, empty until Graph sees it",
+    )
     internet_message_id: Optional[str] = Field(
         default=None, description="Message-ID header"
     )

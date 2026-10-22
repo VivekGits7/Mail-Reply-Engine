@@ -27,6 +27,7 @@ from app.logger import get_logger, setup_logging
 from app.mail import attachments_router, sou_router, templates_router
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.storage import uploads_router
+from app.worker import inline as inline_scheduler
 from app.workflows import (
     complaints_router,
     exits_router,
@@ -55,7 +56,13 @@ async def lifespan(app: FastAPI):
         logger.warning(
             f"Graph subscription not ready, polling covers it: {type(e).__name__}"
         )
+    # Inline mode has no Celery beat, so the API polls the mailbox and runs due jobs itself.
+    run_inline = settings.EVENT_DISPATCH_MODE == "inline" and not settings.is_test
+    if run_inline:
+        inline_scheduler.start()
     yield
+    if run_inline:
+        await inline_scheduler.stop()
     await close_graph()
     await close_db_pool()
     logger.info("Database pool closed")
