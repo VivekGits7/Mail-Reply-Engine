@@ -86,6 +86,27 @@ async def get_message(message_id: str) -> GraphMessage:
     return parse_message(response.json())
 
 
+async def find_by_internet_id(internet_message_id: str) -> Optional[SentMail]:
+    quoted = internet_message_id.replace("'", "''")
+    response = await request(
+        "GET",
+        f"{mailbox_path()}/messages",
+        params={
+            "$filter": f"internetMessageId eq '{quoted}'",
+            "$select": "id,internetMessageId,conversationId",
+            "$top": "1",
+        },
+    )
+    found = response.json().get("value") or []
+    if not found:
+        return None
+    return SentMail(
+        graph_message_id=found[0]["id"],
+        internet_message_id=found[0].get("internetMessageId"),
+        conversation_id=found[0].get("conversationId"),
+    )
+
+
 def extract_mime_attachments(raw: bytes) -> List[GraphAttachment]:
     message: EmailMessage = message_from_bytes(raw, policy=policy.default)
     found: List[GraphAttachment] = []

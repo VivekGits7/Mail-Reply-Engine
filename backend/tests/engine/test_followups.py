@@ -29,6 +29,17 @@ async def compose_escalate(job):
     )
 
 
+@composer("test.nobody")
+async def compose_nobody(job):
+    return Outbound(template_key="complaint_alert", values={}, to=[None])
+
+
+async def test_missing_recipient_skips_the_job_instead_of_crashing(env):
+    job = await start_email("test.nobody", scope="chain-n")
+    fresh = await ScheduledJob.find_by_id(job.scheduled_job_id)
+    assert fresh.status == "skipped" and env.graph.sent == []
+
+
 async def test_chain_follows_up_then_escalates_once(env):
     calls.update(count=0, skip_after=99, hold_once=False)
     await start_email(

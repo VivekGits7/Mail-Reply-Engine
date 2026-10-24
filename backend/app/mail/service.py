@@ -1,13 +1,16 @@
+import asyncio
+import re
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from app import runtime
+from app import runtime, smtp
 from app.audit import log_action
 from app.config import settings
 from app.graph import mail as graph_mail
+from app.graph.schemas import SentMail
 from app.logger import get_logger
 from app.mail.model import Attachment, Email
 from app.mail.templating import TemplateRenderError, render, render_source
@@ -19,6 +22,9 @@ from app.storage import service as storage
 logger = get_logger(__name__)
 
 KILL_SWITCH_RECHECK = timedelta(minutes=5)
+SENT_COPY_ATTEMPTS = 3
+SENT_COPY_WAIT_SECONDS = 1.5
+MESSAGE_ID_PATTERN = re.compile(r"<[^<>\s]+>")
 
 
 class Outbound(BaseModel):
@@ -59,6 +65,16 @@ class Outbound(BaseModel):
     )
 
     model_config = {"arbitrary_types_allowed": True}
+
+    # Composers pass optional contacts straight in, a missing one must drop the mail, not crash the job.
+    @field_validator("to", "cc", mode="before")
+    @classmethod
+    def drop_blank_addresses(cls, value: Any) -> Any:
+        return (
+            [address for address in value if address]
+            if isinstance(value, list)
+            else value
+        )
 
 
 class DeliveryResult(BaseModel):
@@ -119,6 +135,66 @@ async def _files(outbound: Outbound) -> List[tuple[str, str, bytes]]:
             )
         )
     return files
+
+
+def _reply_context(target: Email) -> smtp.ReplyContext:
+    return smtp.ReplyContext(
+        message_id=target.internet_message_id,
+        references=MESSAGE_ID_PATTERN.findall(target.in_reply_to or ""),
+        subject=target.subject or "",
+        sender=target.from_email or "",
+        sent_at=target.received_at or target.sent_at,
+        quoted_text=target.body_text or "",
+    )
+
+
+async def _send(
+    subject: str,
+    html_body: str,
+    to: List[str],
+    cc: List[str],
+    reply_target: Optional[Email],
+    files: List[tuple[str, str, bytes]],
+    subject_prefix: Optional[str],
+) -> SentMail:
+    if settings.MAIL_SEND_PROVIDER == "smtp":
+        return await smtp.send_mail(
+            subject=subject,
+            html_body=html_body,
+            text_body=html_to_text(html_body),
+            to=to,
+            cc=cc,
+            reply_to=_reply_context(reply_target) if reply_target else None,
+            attachments=files,
+            subject_prefix=subject_prefix,
+        )
+    return await graph_mail.send_mail(
+        subject=subject,
+        html_body=html_body,
+        to=to,
+        cc=cc,
+        reply_to_message_id=reply_target.graph_message_id if reply_target else None,
+        attachments=files,
+        subject_prefix=subject_prefix,
+    )
+
+
+# SMTP gives no Graph ids, so look the mail up by Message-ID to keep thread lookups on conversation ids.
+async def _graph_copy(sent: SentMail) -> SentMail:
+    if not settings.graph_configured or not sent.internet_message_id:
+        return sent
+    for attempt in range(SENT_COPY_ATTEMPTS):
+        if attempt:
+            await asyncio.sleep(SENT_COPY_WAIT_SECONDS)
+        try:
+            copy = await graph_mail.find_by_internet_id(sent.internet_message_id)
+        except Exception as e:
+            logger.warning(f"Sent copy lookup failed with {type(e).__name__}")
+            return sent
+        if copy:
+            return copy
+    logger.info("No mailbox copy of the SMTP mail, replies match on Message-ID")
+    return sent
 
 
 async def deliver(
@@ -189,7 +265,7 @@ async def deliver(
         approval_id=outbound.approval_id,
         is_automatic=outbound.is_automatic,
         is_dry_run=rs.dry_run,
-        sender=settings.mailbox,
+        sender=settings.sender_email,
     )
     if email is None:
         return DeliveryResult(status="duplicate", reason="already_sent")
@@ -199,18 +275,20 @@ async def deliver(
         else None
     )
     try:
-        sent = await graph_mail.send_mail(
-            subject=subject,
-            html_body=html_body,
-            to=send_to,
-            cc=send_cc,
-            reply_to_message_id=reply_target.graph_message_id if reply_target else None,
-            attachments=await _files(outbound),
-            subject_prefix=subject_prefix,
+        sent = await _send(
+            subject,
+            html_body,
+            send_to,
+            send_cc,
+            reply_target,
+            await _files(outbound),
+            subject_prefix,
         )
     except Exception:
         await email.mark_failed()
         raise
+    if not sent.graph_message_id:
+        sent = await _graph_copy(sent)
     await email.mark_sent(
         sent.graph_message_id, sent.internet_message_id, sent.conversation_id
     )

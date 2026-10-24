@@ -1,37 +1,41 @@
 # Mail Reply Engine API
 
-HR starts a document request in the dashboard. The API sends it through SMTP. The candidate replies to the same mailbox, and an IMAP watcher passes the reply and attachments to the agent. The agent updates the document tracker and can reply in the same email thread.
-
-See [Backend overview and testing](docs/backend-overview-and-testing.md) for the full workflow and a test walkthrough.
-
-```text
-HR request → OpenAI draft → SMTP send → candidate reply → IMAP watcher
-                                              ↓
-                     store attachments in S3 → review → tracker and SMTP reply
-```
+HR email agent for TCG. It reads `HROperations@tcgdigital.com` through Microsoft Graph, classifies every email on masked text, runs the onboarding, exit, reminder, feedback and induction workflows, and sends replies through Graph or SMTP. HR stays in control on the dashboard. The full design is in `../plan.md`.
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and set Postgres, JWT, OpenAI, S3, SMTP, and IMAP credentials. Keep `.env` private.
-2. Use a mailbox that permits SMTP password authentication and IMAP access. For Gmail, enable IMAP and use an app password where required. `IMAP_USERNAME` and `IMAP_PASSWORD` reuse the SMTP values when empty.
-3. Set `SMTP_FROM_EMAIL` to that mailbox. Its domain must be in `ALLOWED_EMAIL_DOMAINS`. Candidate addresses may use any domain.
-4. Set `S3_ATTACHMENTS_BUCKET` and grant the API `s3:PutObject` and `s3:GetObject` for that bucket. Set `HR_ALERT_EMAIL` if a person should get thread attention alerts.
-5. Apply `database/migrations/001_initial_schema.sql` to the intended Postgres database before starting the API. The committed `database/*.sql` files describe the current tables.
-6. Create an HR account and start the server:
+1. Fill `.env`, `.env.example` lists every key. Keep `.env` private.
+2. Mailbox values from the IT ticket:
+   - `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`: the "HR Automation" app registration
+   - `GRAPH_CLIENT_SECRET`: the secret Value, not the Secret ID. It expires on 2027-10-13.
+   - `GRAPH_MAILBOX`: `HROperations@tcgdigital.com`
+   - `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`: only used when `MAIL_SEND_PROVIDER=smtp`
+   - The mailbox password is not needed, the app signs in with its own secret.
+3. Check the mailbox values without starting the API:
 
 ```bash
-guvrun -m scripts.create_admin --name "TCG User" --email tcg@tcgdigital.com
+guvrun scripts/check_mail.py
+guvrun scripts/check_mail.py --send-to tcg@tcgdigital.com
+```
+
+4. Create the tables from `database/*.sql` in the order of `database/schema_order.txt`, or run the migration in `database/migrations/` on an existing database.
+5. Create an HR admin and start the server:
+
+```bash
+guvrun scripts/create_admin.py --name "TCG User" --email tcg@tcgdigital.com
 guv app.main:app --reload --host 0.0.0.0 --port 8000
 guvtest tests/
 ```
 
-Swagger is at `http://localhost:8000/docs` outside production. `GET /health` reports database and watcher state.
+Swagger is at `http://localhost:8000/docs` outside production.
 
 ## Mailbox behavior
 
-- A new watcher starts at the mailbox's current UID and ignores older inbox mail. On later starts it catches up from the saved Postgres cursor.
-- IMAP IDLE waits for replies when the server supports it. Other servers are polled at `IMAP_POLL_INTERVAL_SECONDS`.
-- Only one API worker watches a mailbox at a time through a Postgres advisory lock. The watcher reconnects after connection errors.
-- The cursor advances after an email is handled. Processing failures leave it in place for retry after reconnect; later emails wait behind the failed one.
-- The unique email `Message-ID` prevents normal duplicate processing. Auto replies, bounces, mailing lists, and mail from the sending address are skipped.
-- `MAX_AUTO_REPLIES_PER_THREAD` caps automatic replies. `HR_ALERT_EMAIL` receives an alert when a thread first needs a person.
+- Graph reads the inbox. A new mailbox starts from now, so older inbox mail is never processed.
+- New mail arrives through the Graph webhook when `GRAPH_WEBHOOK_BASE_URL` is a public HTTPS URL, otherwise through a delta poll every 2 minutes.
+- `EVENT_DISPATCH_MODE=inline` runs events, the mailbox poll and due follow-ups inside the API, which suits local runs. `celery` needs Redis plus the worker and beat from `docker-compose.yml`.
+- `MAIL_SEND_PROVIDER=graph` is the default. It sends with the app and keeps replies in the same Outlook conversation.
+- `MAIL_SEND_PROVIDER=smtp` sends through the SMTP server with STARTTLS. Replies carry In-Reply-To and References, so they still thread. Use it when Graph sending is blocked.
+- Dry-run is on by default. Every email is held until a test inbox is set in Admin, Sending controls, and then only goes to that inbox.
+- The kill switch stops every outgoing email within one minute.
+- Induction booking needs Calendars.ReadWrite on the app. Without it, booking fails with a 502 and the session stays unbooked.

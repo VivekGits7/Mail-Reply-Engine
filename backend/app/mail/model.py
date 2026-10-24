@@ -196,7 +196,7 @@ class Email:
 
     async def mark_sent(
         self,
-        graph_message_id: str,
+        graph_message_id: Optional[str],
         internet_message_id: Optional[str],
         conversation_id: Optional[str],
     ) -> None:
@@ -326,6 +326,22 @@ class Email:
         )
 
     @staticmethod
+    async def adopt_conversation(
+        conversation_id: Optional[str], message_ids: List[str]
+    ) -> None:
+        if not conversation_id or not message_ids:
+            return
+        await execute_command(
+            # SQL
+            """
+            UPDATE emails SET conversation_id = $1, updated_at = NOW()
+            WHERE direction = 'outbound' AND conversation_id IS NULL AND internet_message_id = ANY($2::text[])
+            """,
+            conversation_id,
+            message_ids,
+        )
+
+    @staticmethod
     async def started_by_us(
         conversation_id: Optional[str], message_ids: List[str]
     ) -> bool:
@@ -352,9 +368,10 @@ class Email:
             # SQL
             """
             SELECT latest.* FROM emails seed
-            JOIN emails latest ON latest.conversation_id = seed.conversation_id
+            JOIN emails latest ON latest.email_id = seed.email_id OR latest.conversation_id = seed.conversation_id
             WHERE seed.case_id = $1 AND seed.direction = 'outbound' AND seed.template_key = ANY($2::text[])
-              AND seed.graph_message_id IS NOT NULL AND latest.graph_message_id IS NOT NULL AND latest.is_restricted = FALSE
+              AND seed.sent_at IS NOT NULL AND COALESCE(latest.graph_message_id, latest.internet_message_id) IS NOT NULL
+              AND latest.is_restricted = FALSE
             ORDER BY COALESCE(latest.received_at, latest.sent_at, latest.created_at) DESC
             LIMIT 1
             """,
@@ -371,10 +388,11 @@ class Email:
             # SQL
             """
             SELECT latest.* FROM emails seed
-            JOIN emails latest ON latest.conversation_id = seed.conversation_id
+            JOIN emails latest ON latest.email_id = seed.email_id OR latest.conversation_id = seed.conversation_id
             WHERE seed.task_id = $1 AND seed.direction = 'outbound'
               AND ($2::bytea IS NULL OR $2 = ANY(seed.recipients_idx))
-              AND seed.graph_message_id IS NOT NULL AND latest.graph_message_id IS NOT NULL AND latest.is_restricted = FALSE
+              AND seed.sent_at IS NOT NULL AND COALESCE(latest.graph_message_id, latest.internet_message_id) IS NOT NULL
+              AND latest.is_restricted = FALSE
             ORDER BY COALESCE(latest.received_at, latest.sent_at, latest.created_at) DESC
             LIMIT 1
             """,

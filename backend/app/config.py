@@ -111,6 +111,28 @@ class Settings(BaseSettings):
         default=4200, description="Requested mail subscription lifetime"
     )
 
+    # MAIL SENDING
+    MAIL_SEND_PROVIDER: Literal["graph", "smtp"] = Field(
+        default="graph",
+        description="Send through Graph or through the SMTP server, reading always uses Graph",
+    )
+    SMTP_HOST: str = Field(default="", description="SMTP server host")
+    SMTP_PORT: int = Field(default=587, description="SMTP server port")
+    SMTP_SECURITY: Literal["starttls", "ssl", "none"] = Field(
+        default="starttls", description="How the SMTP connection is encrypted"
+    )
+    SMTP_USERNAME: str = Field(default="", description="SMTP login, empty for no login")
+    SMTP_PASSWORD: str = Field(default="", description="SMTP password")
+    SMTP_FROM_EMAIL: str = Field(
+        default="", description="From address on SMTP mail, defaults to GRAPH_MAILBOX"
+    )
+    SMTP_FROM_NAME: str = Field(
+        default="", description="From display name on SMTP mail"
+    )
+    SMTP_TIMEOUT_SECONDS: float = Field(
+        default=30.0, description="SMTP connect and send timeout"
+    )
+
     # OBJECT STORAGE
     S3_ENDPOINT_URL: str = Field(
         default="http://localhost:9100",
@@ -220,6 +242,16 @@ class Settings(BaseSettings):
     @property
     def mailbox(self) -> str:
         return self.GRAPH_MAILBOX.lower()
+
+    @property
+    def sender_email(self) -> str:
+        if self.MAIL_SEND_PROVIDER == "smtp" and self.SMTP_FROM_EMAIL:
+            return self.SMTP_FROM_EMAIL.lower()
+        return self.mailbox
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.SMTP_HOST and self.sender_email)
 
     @property
     def pii_keys(self) -> Dict[str, bytes]:
