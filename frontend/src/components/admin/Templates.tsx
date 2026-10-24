@@ -22,8 +22,8 @@ export default function Templates() {
   return (
     <section>
       <PageHeader
-        title="Mail templates"
-        description="Review the subjects and message bodies the agent uses for automated mail."
+        title="Email templates"
+        description="The wording of every automatic email. Placeholders in double braces are filled in for each person. Emails built from a template go out without approval, so check them before turning dry run off."
       />
       <FilterBar>
         <SearchInput label="Search templates" value={params.search} onSearch={(search) => set({ search })} />
@@ -42,7 +42,14 @@ export default function Templates() {
       ) : templates.isError ? (
         <ErrorState error={templates.error} onRetry={() => templates.refetch()} />
       ) : !templates.data.length ? (
-        <EmptyState title="No templates match" description="Try another search or state filter." />
+        <EmptyState
+          title={params.search || get('is_active') ? 'No templates match' : 'No templates yet'}
+          description={
+            params.search || get('is_active')
+              ? 'Try another search or state filter.'
+              : 'Templates are created when the server starts. If this stays empty, ask IT to check the backend.'
+          }
+        />
       ) : (
         <TableShell>
           <Table>

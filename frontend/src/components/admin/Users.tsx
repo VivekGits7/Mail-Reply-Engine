@@ -57,8 +57,8 @@ export default function Users() {
   return (
     <section>
       <PageHeader
-        title="HR users"
-        description="Manage dashboard access. Viewer accounts can read; admins can change automation."
+        title="Users"
+        description="Who can sign in to this dashboard. Viewers can see cases and settings, admins can also change them, and complaints access is granted to each person separately."
         actions={
           <UserForm
             trigger={

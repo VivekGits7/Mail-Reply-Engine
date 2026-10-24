@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/QueryState';
+import { SearchInput } from '@/components/common/SearchInput';
 import { TableShell } from '@/components/common/TableShell';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,11 +47,11 @@ export default function Holidays() {
     <section>
       <PageHeader
         title="Holidays"
-        description="Dates the agent skips for sending and induction planning."
+        description="Days when the agent sends nothing and plans no induction sessions. Emails due on a holiday wait for the next working day."
         actions={isAdmin && <AddHoliday />}
       />
-      <div className="mb-4 flex flex-wrap gap-3">
-        <label className="text-sm">
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1 text-sm">
           Year
           <Input
             type="number"
@@ -61,14 +62,7 @@ export default function Holidays() {
             className="w-28"
           />
         </label>
-        <label className="text-sm">
-          Location
-          <Input
-            value={location ?? ''}
-            onChange={(event) => set({ location: event.target.value || undefined })}
-            placeholder="All locations…"
-          />
-        </label>
+        <SearchInput label="Location" value={location} onSearch={(next) => set({ location: next })} />
       </div>
       {list.isPending ? (
         <TableSkeleton />
@@ -77,7 +71,12 @@ export default function Holidays() {
       ) : !list.data.length ? (
         <EmptyState
           title="No holidays in this view"
-          description="Try another year or add a company wide holiday."
+          description={
+            location
+              ? 'No holidays for this location in this year. Clear the location to see company wide holidays.'
+              : `No holidays are set for ${year}, so the agent sends on every weekday in the sending window. Add the company holidays for the year.`
+          }
+          action={isAdmin && !location ? <AddHoliday /> : undefined}
         />
       ) : (
         <TableShell>

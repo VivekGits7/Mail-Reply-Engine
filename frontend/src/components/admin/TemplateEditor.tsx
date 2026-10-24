@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage, getErrorStatus } from '@/utils/apiError';
 import { showToast } from '@/utils/toast';
 import type { PreviewData, TemplateData } from '@/types';
 import { adminApi, adminKeys, templateQuery } from './Adminapi';
@@ -19,8 +19,22 @@ export default function TemplateEditor() {
   const { templateKey = '' } = useParams();
   const template = useQuery(templateQuery(templateKey));
   if (template.isPending) return <BlockSkeleton />;
-  if (template.isError) return <ErrorState error={template.error} onRetry={() => template.refetch()} />;
-  if (!template.data) return <EmptyState title="Template not found" />;
+  if (template.isError && getErrorStatus(template.error) !== 404) {
+    return <ErrorState error={template.error} onRetry={() => template.refetch()} />;
+  }
+  if (!template.data) {
+    return (
+      <EmptyState
+        title="Template not found"
+        description="The link may be old, or the template key changed."
+        action={
+          <Button asChild variant="outline">
+            <Link to="/admin/templates">Back to email templates</Link>
+          </Button>
+        }
+      />
+    );
+  }
   return <Editor key={templateKey} template={template.data} />;
 }
 
@@ -58,7 +72,7 @@ function Editor({ template }: { template: TemplateData }) {
         to="/admin/templates"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="size-4" /> Templates
+        <ArrowLeft className="size-4" aria-hidden="true" /> Email templates
       </Link>
       <PageHeader
         title={template.name}
