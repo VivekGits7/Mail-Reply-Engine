@@ -39,8 +39,9 @@ describe('failureReason', () => {
     expect(reason.fix).toContain('IT');
   });
 
-  it('separates SMTP, template and unknown errors', () => {
-    expect(failureReason('MailSendException: Could not sign in to the SMTP server').cause).toBe('smtp_login');
+  it('separates Microsoft, template and unknown errors', () => {
+    expect(failureReason('GraphException: Microsoft Graph kept failing, try again later').cause).toBe('microsoft_down');
+    expect(failureReason('GraphException: Microsoft Graph request failed').cause).toBe('microsoft_refused');
     expect(failureReason('TemplateRenderError: Template doc_request is missing or inactive').cause).toBe('template');
     expect(failureReason('KeyError: x').cause).toBe('unknown');
     expect(failureReason(null).cause).toBe('unknown');
