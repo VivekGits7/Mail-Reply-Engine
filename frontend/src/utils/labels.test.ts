@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { documentLabel, flagLabel, optionsFrom, statusLabel } from './labels';
+import {
+  EMAIL_CATEGORY_LABELS,
+  documentLabel,
+  flagLabel,
+  labelFrom,
+  optionsFrom,
+  stageHint,
+  statusLabel,
+} from './labels';
 
 describe('labels', () => {
   it('maps backend statuses to a label and a tone', () => {
@@ -14,6 +22,16 @@ describe('labels', () => {
     expect(documentLabel('class_10_certificate')).toBe('Class 10 certificate');
     expect(documentLabel('offer_letter')).toBe('Offer letter');
     expect(flagLabel('sender_not_recognised')).toBe('Unknown sender');
+  });
+
+  it('explains what happens at each stage and labels raw values', () => {
+    expect(stageHint('ready_for_signoff')).toContain('sign off');
+    expect(stageHint('unknown_stage')).toBeUndefined();
+    expect(labelFrom(EMAIL_CATEGORY_LABELS, 'doc_submission')).toBe('Documents sent');
+    expect(labelFrom(EMAIL_CATEGORY_LABELS, 'new_category')).toBe('New category');
+    expect(labelFrom(EMAIL_CATEGORY_LABELS, null)).toBe('—');
+    expect(statusLabel('welcome_scheduled').label).toBe('Welcome scheduled');
+    expect(statusLabel('skipped').label).toBe('Not read');
   });
 
   it('builds select options with custom labels first', () => {
