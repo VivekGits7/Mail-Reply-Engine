@@ -31,6 +31,9 @@ import {
 } from '@/utils/utility';
 import type { ApprovalDetail as Approval, ApprovalDraft, DraftSession } from '@/types';
 import { approvalDetailQuery, approvalKeys, approvalsApi } from './Approvalsapi';
+import { Avatar } from '@/components/visual/Avatar';
+import { DateTimeField } from '@/components/common/DateField';
+import { SchedulePreview } from './SchedulePreview';
 
 export default function ApprovalDetail() {
   const { approvalId = '' } = useParams();
@@ -126,35 +129,38 @@ function ApprovalView({ approval }: { approval: Approval }) {
     <article>
       <Link
         to="/approvals"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex h-9 items-center gap-1.5 pill px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Approvals
       </Link>
-      <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {isReply
-              ? 'Reply draft'
-              : `Induction plan${approval.draft.track ? ` · ${humanize(approval.draft.track)} track` : ''}`}
-          </p>
-          <h1 className="mt-0.5 text-2xl font-semibold tracking-tight">
-            {approval.case_id ? (
-              <Link to={`/cases/${approval.case_id}`} className="hover:text-primary hover:underline">
-                {approval.person_name ?? 'Open case'}
-              </Link>
-            ) : (
-              (approval.person_name ?? 'Unknown sender')
-            )}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <StatusBadge value={approval.status} />
-            <span>Drafted {formatRelative(approval.created_at)}</span>
-            {approval.draft.ai_confidence != null && (
-              <span className="tabular-nums">
-                · AI {Math.round(approval.draft.ai_confidence * 100)}% sure
-              </span>
-            )}
+      <header className="mb-6 flex flex-col gap-4 panel p-5 sm:flex-row sm:items-start sm:justify-between sm:p-7">
+        <div className="flex min-w-0 items-start gap-4">
+          {approval.person_name && <Avatar name={approval.person_name} size="xl" />}
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">
+              {isReply
+                ? 'Reply draft'
+                : `Induction plan${approval.draft.track ? ` · ${humanize(approval.draft.track)} track` : ''}`}
+            </p>
+            <h1 className="mt-0.5 text-[1.9rem] leading-tight font-normal tracking-[-0.035em]">
+              {approval.case_id ? (
+                <Link to={`/cases/${approval.case_id}`} className="hover:text-primary hover:underline">
+                  {approval.person_name ?? 'Open case'}
+                </Link>
+              ) : (
+                (approval.person_name ?? 'Unknown sender')
+              )}
+            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <StatusBadge value={approval.status} />
+              <span>Drafted {formatRelative(approval.created_at)}</span>
+              {approval.draft.ai_confidence != null && (
+                <span className="tabular-nums">
+                  · AI {Math.round(approval.draft.ai_confidence * 100)}% sure
+                </span>
+              )}
+            </div>
           </div>
         </div>
         {editable && (
@@ -175,12 +181,12 @@ function ApprovalView({ approval }: { approval: Approval }) {
       </header>
 
       {approval.status === 'rejected' && approval.reject_reason && (
-        <p className="mb-4 rounded-lg border bg-muted/50 p-3 text-sm">
+        <p className="mb-4 rounded-2xl bg-muted/70 px-4 py-3 text-sm">
           Rejected {formatRelative(approval.decided_at)}: {approval.reject_reason}
         </p>
       )}
       {approval.draft.notes && (
-        <p className="mb-4 rounded-lg border border-info/25 bg-info/5 p-3 text-sm">
+        <p className="mb-4 rounded-2xl border border-info/20 bg-info/6 px-4 py-3 text-sm">
           <span className="font-medium">Note from the agent: </span>
           {approval.draft.notes}
         </p>
@@ -193,8 +199,8 @@ function ApprovalView({ approval }: { approval: Approval }) {
 
       <div className={isReply ? 'grid gap-6 lg:grid-cols-2' : undefined}>
         {isReply && (
-          <section className="rounded-lg border bg-card p-4">
-            <h2 className="text-sm font-semibold">What came in</h2>
+          <section className="panel p-5 sm:p-6">
+            <h2 className="text-xl font-normal tracking-[-0.02em]">What came in</h2>
             {approval.source_email ? (
               <>
                 <p className="mt-2 text-xs text-muted-foreground">
@@ -213,8 +219,8 @@ function ApprovalView({ approval }: { approval: Approval }) {
         )}
 
         {isReply ? (
-          <section className="flex flex-col gap-4 rounded-lg border bg-card p-4">
-            <h2 className="text-sm font-semibold">Reply</h2>
+          <section className="flex flex-col gap-4 panel p-5 sm:p-6">
+            <h2 className="text-xl font-normal tracking-[-0.02em]">Reply</h2>
             <Field id="draft-to" label="To" hint="Separate addresses with commas">
               <Input
                 id="draft-to"
@@ -244,7 +250,10 @@ function ApprovalView({ approval }: { approval: Approval }) {
             </Field>
           </section>
         ) : (
-          <SessionsEditor sessions={sessions} onChange={setSessions} editable={editable} />
+          <>
+            <SchedulePreview sessions={sessions} />
+            <SessionsEditor sessions={sessions} onChange={setSessions} editable={editable} />
+          </>
         )}
       </div>
     </article>
@@ -263,9 +272,9 @@ function SessionsEditor({ sessions, onChange, editable }: SessionsEditorProps) {
   }
 
   return (
-    <section className="rounded-lg border bg-card p-4">
+    <section className="panel p-5 sm:p-6">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Sessions</h2>
+        <h2 className="text-xl font-normal tracking-[-0.02em]">Sessions</h2>
         {editable && (
           <Button
             variant="outline"
@@ -297,21 +306,22 @@ function SessionsEditor({ sessions, onChange, editable }: SessionsEditorProps) {
               />
             </Field>
             <Field id={`s-start-${index}`} label="Starts">
-              <Input
+              <DateTimeField
                 id={`s-start-${index}`}
-                type="datetime-local"
+                label="Starts"
                 value={session.start}
                 disabled={!editable}
-                onChange={(event) => update(index, { start: event.target.value })}
+                onChange={(next) => update(index, { start: next })}
               />
             </Field>
             <Field id={`s-end-${index}`} label="Ends">
-              <Input
+              <DateTimeField
                 id={`s-end-${index}`}
-                type="datetime-local"
+                label="Ends"
                 value={session.end}
+                min={session.start}
                 disabled={!editable}
-                onChange={(event) => update(index, { end: event.target.value })}
+                onChange={(next) => update(index, { end: next })}
               />
             </Field>
             {editable && (

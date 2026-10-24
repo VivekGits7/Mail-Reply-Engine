@@ -1,4 +1,4 @@
-import { Input } from '@/components/ui/input';
+import { DateField } from './DateField';
 
 interface DateRangeProps {
   label: string;
@@ -11,24 +11,24 @@ export function DateRange({ label, from, to, onChange }: DateRangeProps) {
   return (
     <fieldset className="flex items-center gap-1.5">
       <legend className="sr-only">{label}</legend>
-      <Input
-        type="date"
+      <DateField
         aria-label={`${label} from`}
+        placeholder="From"
         value={from ?? ''}
         max={to}
-        onChange={(event) => onChange(event.target.value || undefined, to)}
-        className="w-full sm:w-36"
+        onChange={(next) => onChange(next || undefined, to)}
+        className="w-full sm:w-40"
       />
       <span className="text-sm text-muted-foreground" aria-hidden="true">
         to
       </span>
-      <Input
-        type="date"
+      <DateField
         aria-label={`${label} to`}
+        placeholder="To"
         value={to ?? ''}
         min={from}
-        onChange={(event) => onChange(from, event.target.value || undefined)}
-        className="w-full sm:w-36"
+        onChange={(next) => onChange(from, next || undefined)}
+        className="w-full sm:w-40"
       />
     </fieldset>
   );

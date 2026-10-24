@@ -39,8 +39,10 @@ export function SendingBanner() {
     <div
       role="status"
       className={cn(
-        'border-b px-4 py-2 text-sm sm:px-6 lg:px-8',
-        danger ? 'border-destructive/30 bg-destructive/10 text-destructive' : 'border-warning/30 bg-warning/10 text-warning',
+        'rounded-3xl border px-5 py-2.5 text-sm',
+        danger
+          ? 'border-destructive/20 bg-destructive/8 text-destructive'
+          : 'border-warning/25 bg-sun/15 text-warning',
       )}
     >
       <span className="inline-flex items-center gap-2 font-medium">

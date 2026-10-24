@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { Field } from '@/components/common/Field';
 import { Button } from '@/components/ui/button';
+import { SelectField } from '@/components/common/SelectField';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { InductionTrack } from '@/types';
 import { casesApi } from './Casesapi';
 import { useCaseMutation } from './useCaseMutation';
@@ -34,21 +34,27 @@ export function PlanInductionDialog({ caseId, trigger }: { caseId: string; trigg
         <DialogHeader>
           <DialogTitle>Plan induction</DialogTitle>
           <DialogDescription>
-            The agent drafts a schedule that skips weekends and holidays. It waits in the approval queue for you.
+            The agent drafts a schedule that skips weekends and holidays. It waits in the approval queue for
+            you.
           </DialogDescription>
         </DialogHeader>
-        <Field id="induction-track" label="Track" hint="Leave on automatic to pick it from the level and hire type">
-          <NativeSelect
+        <Field
+          id="induction-track"
+          label="Track"
+          hint="Leave on automatic to pick it from the level and hire type"
+        >
+          <SelectField
             id="induction-track"
-            className="w-full"
+            className="w-full sm:w-full"
             value={track}
-            onChange={(event) => setTrack(event.target.value as InductionTrack | '')}
-          >
-            <NativeSelectOption value="">Automatic</NativeSelectOption>
-            <NativeSelectOption value={InductionTrack.CAMPUS}>Campus</NativeSelectOption>
-            <NativeSelectOption value={InductionTrack.MID}>Mid level</NativeSelectOption>
-            <NativeSelectOption value={InductionTrack.SENIOR}>Senior</NativeSelectOption>
-          </NativeSelect>
+            onValueChange={(next) => setTrack(next as InductionTrack | '')}
+            options={[
+              { value: '', label: 'Automatic' },
+              { value: InductionTrack.CAMPUS, label: 'Campus' },
+              { value: InductionTrack.MID, label: 'Mid level' },
+              { value: InductionTrack.SENIOR, label: 'Senior' },
+            ]}
+          />
         </Field>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>

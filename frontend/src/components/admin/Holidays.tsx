@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DateField } from '@/components/common/DateField';
 import { useUrlState } from '@/hooks/useUrlState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
@@ -25,6 +26,7 @@ import { getErrorMessage } from '@/utils/apiError';
 import { showToast } from '@/utils/toast';
 import { formatDate } from '@/utils/utility';
 import { adminApi, adminKeys, holidaysQuery } from './Adminapi';
+import { HolidayCalendar } from './HolidayCalendar';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -64,6 +66,7 @@ export default function Holidays() {
         </label>
         <SearchInput label="Location" value={location} onSearch={(next) => set({ location: next })} />
       </div>
+      {list.data && !location && <HolidayCalendar year={year} holidays={list.data} />}
       {list.isPending ? (
         <TableSkeleton />
       ) : list.isError ? (
@@ -128,21 +131,24 @@ export default function Holidays() {
 
 function AddHoliday() {
   const [open, setOpen] = useState(false);
+  const [date, setDate] = useState('');
   const cache = useQueryClient();
   const create = useMutation({
     mutationFn: adminApi.createHoliday,
     onSuccess: () => {
       cache.invalidateQueries({ queryKey: ['admin', 'holidays'] });
       showToast.success('Holiday added');
+      setDate('');
       setOpen(false);
     },
     onError: (error) => showToast.error(getErrorMessage(error)),
   });
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!date) return;
     const form = new FormData(event.currentTarget);
     create.mutate({
-      holiday_date: String(form.get('date')),
+      holiday_date: date,
       name: String(form.get('name')).trim(),
       location: String(form.get('location')).trim() || null,
     });
@@ -160,10 +166,10 @@ function AddHoliday() {
           <DialogDescription>Leave location blank for a company wide holiday.</DialogDescription>
         </DialogHeader>
         <form id="holiday-form" className="space-y-4" onSubmit={submit}>
-          <label className="block text-sm">
-            Date
-            <Input name="date" type="date" required className="mt-1" />
-          </label>
+          <div className="text-sm">
+            <label htmlFor="holiday-date">Date</label>
+            <DateField id="holiday-date" value={date} onChange={setDate} className="mt-1" />
+          </div>
           <label className="block text-sm">
             Name
             <Input name="name" required minLength={2} className="mt-1" />
@@ -174,7 +180,7 @@ function AddHoliday() {
           </label>
         </form>
         <DialogFooter>
-          <Button form="holiday-form" type="submit" disabled={create.isPending}>
+          <Button form="holiday-form" type="submit" disabled={create.isPending || !date}>
             {create.isPending ? 'Adding…' : 'Add holiday'}
           </Button>
         </DialogFooter>

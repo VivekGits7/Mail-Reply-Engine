@@ -24,8 +24,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { SelectField } from '@/components/common/SelectField';
 import { useUrlState } from '@/hooks/useUrlState';
 import { getErrorMessage } from '@/utils/apiError';
 import { showToast } from '@/utils/toast';
@@ -73,7 +73,14 @@ export default function Complaints() {
           to={params.date_to}
           onChange={(date_from, date_to) => set({ date_from, date_to })}
         />
-        <SortSelect options={[{ label: 'Newest first', sort_order: 'latest' }, { label: 'Oldest first', sort_order: 'oldest' }]} sortOrder={params.sort_order} onChange={(_sortBy, sort_order) => set({ sort_order })} />
+        <SortSelect
+          options={[
+            { label: 'Newest first', sort_order: 'latest' },
+            { label: 'Oldest first', sort_order: 'oldest' },
+          ]}
+          sortOrder={params.sort_order}
+          onChange={(_sortBy, sort_order) => set({ sort_order })}
+        />
       </FilterBar>
       {list.isPending ? (
         <TableSkeleton />
@@ -227,17 +234,11 @@ function UploadTranscript() {
         </DialogHeader>
         <label className="space-y-1 text-sm">
           Source
-          <NativeSelect
+          <SelectField
             value={source}
-            onChange={(event) => setSource(event.target.value as UploadSourceType)}
-            className="w-full"
-          >
-            {Object.values(UploadSource).map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {humanize(value)}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            onValueChange={(next) => setSource(next as UploadSourceType)}
+            options={Object.values(UploadSource).map((value) => ({ value, label: humanize(value) }))}
+          />
         </label>
         <label className="space-y-1 text-sm">
           Person ID, optional

@@ -1,4 +1,4 @@
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
+import { SelectField } from './SelectField';
 
 export interface SortOption {
   label: string;
@@ -18,23 +18,19 @@ function keyOf(option: Pick<SortOption, 'sort_by' | 'sort_order'>) {
 }
 
 export function SortSelect({ options, sortBy, sortOrder, onChange }: SortSelectProps) {
-  const current = options.find((option) => option.sort_by === sortBy && option.sort_order === sortOrder) ?? options[0];
+  const current =
+    options.find((option) => option.sort_by === sortBy && option.sort_order === sortOrder) ?? options[0];
 
   return (
-    <NativeSelect
+    <SelectField
       aria-label="Sort"
+      prefix="Sort"
       value={keyOf(current)}
-      className="w-full sm:w-auto"
-      onChange={(event) => {
-        const picked = options.find((option) => keyOf(option) === event.target.value) ?? options[0];
+      options={options.map((option) => ({ value: keyOf(option), label: option.label }))}
+      onValueChange={(next) => {
+        const picked = options.find((option) => keyOf(option) === next) ?? options[0];
         onChange(picked.sort_by, picked.sort_order);
       }}
-    >
-      {options.map((option) => (
-        <NativeSelectOption key={keyOf(option)} value={keyOf(option)}>
-          {option.label}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
+    />
   );
 }

@@ -15,9 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { SelectField } from '@/components/common/SelectField';
 import { TASK_TYPE_LABELS, statusLabel } from '@/utils/labels';
 import { formatRelative, humanize } from '@/utils/utility';
 import { TaskStatus, type TaskData } from '@/types';
@@ -30,7 +30,10 @@ export function TasksPanel({ caseId, tasks }: { caseId: string; tasks: TaskData[
   const isAdmin = useAppSelector(selectIsAdmin);
   const [editing, setEditing] = useState<TaskData | null>(null);
 
-  if (!tasks.length) return <EmptyState title="No tasks yet" description="Tasks appear when the agent asks a team for something." />;
+  if (!tasks.length)
+    return (
+      <EmptyState title="No tasks yet" description="Tasks appear when the agent asks a team for something." />
+    );
 
   return (
     <>
@@ -50,7 +53,9 @@ export function TasksPanel({ caseId, tasks }: { caseId: string; tasks: TaskData[
             {tasks.map((task) => (
               <TableRow key={task.task_id}>
                 <TableCell className="max-w-64 whitespace-normal">
-                  <span className="font-medium">{TASK_TYPE_LABELS[task.task_type] ?? humanize(task.task_type)}</span>
+                  <span className="font-medium">
+                    {TASK_TYPE_LABELS[task.task_type] ?? humanize(task.task_type)}
+                  </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {task.owner_email ?? humanize(task.owner_role)}
                   </span>
@@ -66,7 +71,10 @@ export function TasksPanel({ caseId, tasks }: { caseId: string; tasks: TaskData[
                     <ul className="flex flex-wrap gap-1">
                       {Object.entries(task.sub_items).map(([item, state]) => (
                         <li key={item}>
-                          <StatusBadge value={state} label={`${humanize(item)}: ${statusLabel(state).label}`} />
+                          <StatusBadge
+                            value={state}
+                            label={`${humanize(item)}: ${statusLabel(state).label}`}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -76,7 +84,9 @@ export function TasksPanel({ caseId, tasks }: { caseId: string; tasks: TaskData[
                 </TableCell>
                 <TableCell className="tabular-nums">{task.followups_sent}</TableCell>
                 <TableCell className="text-muted-foreground tabular-nums">
-                  {task.completed_at ? `Done ${formatRelative(task.completed_at)}` : formatRelative(task.next_followup_at)}
+                  {task.completed_at
+                    ? `Done ${formatRelative(task.completed_at)}`
+                    : formatRelative(task.next_followup_at)}
                 </TableCell>
                 {isAdmin && (
                   <TableCell>
@@ -104,7 +114,9 @@ function TaskDialog({ caseId, task, onClose }: { caseId: string; task: TaskData;
   const [status, setStatus] = useState(task.status);
   const [items, setItems] = useState<Record<string, string>>(task.sub_items);
   const [note, setNote] = useState('');
-  const changedItems = Object.fromEntries(Object.entries(items).filter(([key, value]) => task.sub_items[key] !== value));
+  const changedItems = Object.fromEntries(
+    Object.entries(items).filter(([key, value]) => task.sub_items[key] !== value),
+  );
   const save = useCaseMutation(
     caseId,
     () =>
@@ -128,13 +140,13 @@ function TaskDialog({ caseId, task, onClose }: { caseId: string; task: TaskData;
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <Field id="task-status" label="Status">
-            <NativeSelect id="task-status" className="w-full" value={status} onChange={(event) => setStatus(event.target.value)}>
-              {Object.values(TaskStatus).map((value) => (
-                <NativeSelectOption key={value} value={value}>
-                  {statusLabel(value).label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <SelectField
+              id="task-status"
+              className="w-full sm:w-full"
+              value={status}
+              onValueChange={setStatus}
+              options={Object.values(TaskStatus).map((value) => ({ value, label: statusLabel(value).label }))}
+            />
           </Field>
           {Object.keys(items).length > 0 && (
             <fieldset className="flex flex-col gap-2">
@@ -144,23 +156,23 @@ function TaskDialog({ caseId, task, onClose }: { caseId: string; task: TaskData;
                   <label htmlFor={`item-${item}`} className="text-sm">
                     {humanize(item)}
                   </label>
-                  <NativeSelect
+                  <SelectField
                     id={`item-${item}`}
                     value={state}
-                    onChange={(event) => setItems((prev) => ({ ...prev, [item]: event.target.value }))}
-                  >
-                    {SUB_ITEM_STATES.map((value) => (
-                      <NativeSelectOption key={value} value={value}>
-                        {statusLabel(value).label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                    onValueChange={(next) => setItems((prev) => ({ ...prev, [item]: next }))}
+                    options={SUB_ITEM_STATES.map((value) => ({ value, label: statusLabel(value).label }))}
+                  />
                 </div>
               ))}
             </fieldset>
           )}
           <Field id="task-note" label="Progress note" optional>
-            <Textarea id="task-note" rows={3} value={note} onChange={(event) => setNote(event.target.value)} />
+            <Textarea
+              id="task-note"
+              rows={3}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+            />
           </Field>
         </div>
         <DialogFooter>

@@ -37,7 +37,8 @@ const CAUSE_BANNERS: Partial<Record<FailureCause, { title: string; detail: strin
   },
   microsoft_missing: {
     title: 'Microsoft 365 is not connected yet',
-    detail: 'IT needs to add the Microsoft Graph app details on the server. Once they are added, retry the items below.',
+    detail:
+      'IT needs to add the Microsoft Graph app details on the server. Once they are added, retry the items below.',
   },
   smtp_login: {
     title: 'Emails are not going out because the email server sign-in is failing',
@@ -82,7 +83,10 @@ export default function Failures() {
         />
       </FilterBar>
       {banner && (
-        <div role="alert" className="mb-4 flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+        <div
+          role="alert"
+          className="mb-4 flex gap-3 rounded-3xl border border-destructive/20 bg-destructive/6 p-5"
+        >
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden="true" />
           <div className="min-w-0">
             <p className="font-medium text-destructive">{banner.title}</p>
@@ -130,10 +134,14 @@ export default function Failures() {
                       </TableCell>
                       <TableCell className="max-w-sm align-top whitespace-normal">
                         <span className="font-medium">{reason.title}</span>
-                        <span className="mt-0.5 block text-xs text-pretty text-muted-foreground">{reason.fix}</span>
+                        <span className="mt-0.5 block text-xs text-pretty text-muted-foreground">
+                          {reason.fix}
+                        </span>
                         {item.last_error && (
                           <details className="mt-1 text-xs text-muted-foreground">
-                            <summary className="cursor-pointer select-none hover:text-foreground">Error for IT</summary>
+                            <summary className="cursor-pointer select-none hover:text-foreground">
+                              Error for IT
+                            </summary>
                             <code className="mt-1 block font-mono break-words">{item.last_error}</code>
                           </details>
                         )}
@@ -144,7 +152,10 @@ export default function Failures() {
                       </TableCell>
                       <TableCell className="align-top">
                         {item.case_id ? (
-                          <Link to={`/cases/${item.case_id}`} className="text-sm hover:text-primary hover:underline">
+                          <Link
+                            to={`/cases/${item.case_id}`}
+                            className="text-sm hover:text-primary hover:underline"
+                          >
                             Open case
                           </Link>
                         ) : (

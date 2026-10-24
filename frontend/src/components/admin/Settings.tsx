@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { TimeField } from '@/components/common/DateField';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { getErrorMessage } from '@/utils/apiError';
 import { CONTACT_HINTS, missingContacts } from '@/utils/setup';
@@ -37,11 +38,22 @@ function settingLabel(key: string): string {
 const SECTIONS: { title: string; keys: string[] }[] = [
   {
     title: 'Follow-ups',
-    keys: ['followup_gap_hours', 'finance_followup_gap_hours', 'max_followups', 'max_auto_emails_per_person_per_day'],
+    keys: [
+      'followup_gap_hours',
+      'finance_followup_gap_hours',
+      'max_followups',
+      'max_auto_emails_per_person_per_day',
+    ],
   },
   {
     title: 'Sending window',
-    keys: ['sending_days', 'sending_start', 'sending_end', 'welcome_email_time', 'appointment_letter_check_time'],
+    keys: [
+      'sending_days',
+      'sending_start',
+      'sending_end',
+      'welcome_email_time',
+      'appointment_letter_check_time',
+    ],
   },
   {
     title: 'Induction',
@@ -94,9 +106,13 @@ function ContactGaps({ settings }: { settings: SettingItem[] }) {
   const missing = missingContacts(settings);
   if (!missing.length) return null;
   return (
-    <p role="status" className="mb-2 rounded-md border border-warning/30 bg-warning/10 p-2.5 text-sm text-warning">
+    <p
+      role="status"
+      className="mb-2 rounded-2xl border border-warning/25 bg-sun/15 px-4 py-3 text-sm text-warning"
+    >
       {missing.length === 1 ? '1 team address is' : `${missing.length} team addresses are`} empty:{' '}
-      {missing.map(settingLabel).join(', ')}. Emails to these teams are skipped and the case is flagged Needs HR.
+      {missing.map(settingLabel).join(', ')}. Emails to these teams are skipped and the case is flagged Needs
+      HR.
     </p>
   );
 }
@@ -137,7 +153,7 @@ export default function Settings() {
         description="The rules the agent follows: follow-up timing, sending hours, thresholds and the team addresses it emails. The kill switch and dry run are on Controls."
       />
       {!isAdmin && (
-        <p className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+        <p className="mb-4 rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
           You can see every setting. Only HR admins can change them.
         </p>
       )}
@@ -147,17 +163,20 @@ export default function Settings() {
       ) : settings.isError ? (
         <ErrorState error={settings.error} onRetry={() => settings.refetch()} />
       ) : !settings.data.length ? (
-        <EmptyState title="No settings available" description="Settings appear once the backend has started." />
+        <EmptyState
+          title="No settings available"
+          description="Settings appear once the backend has started."
+        />
       ) : (
         <div className="flex flex-col gap-6">
           {grouped(settings.data).map((section) => (
             <section key={section.title} id={sectionId(section.title)} className="scroll-mt-20">
-              <h2 className="mb-1 text-sm font-semibold">{section.title}</h2>
+              <h2 className="mb-1 text-lg font-normal tracking-tight">{section.title}</h2>
               {SECTION_HINTS[section.title] && (
                 <p className="mb-2 text-sm text-muted-foreground">{SECTION_HINTS[section.title]}</p>
               )}
               {section.title === 'Teams and integrations' && <ContactGaps settings={settings.data} />}
-              <div className="divide-y rounded-lg border bg-card">
+              <div className="divide-y overflow-hidden panel">
                 {section.items.map((item) => (
                   <SettingRow key={`${item.key}:${item.updated_at ?? ''}`} item={item} editable={isAdmin} />
                 ))}
@@ -183,12 +202,14 @@ function StatementUpload() {
   });
 
   return (
-    <div className="mb-6 rounded-lg border bg-card p-4">
+    <div className="mb-6 panel p-5 sm:p-6">
       <div className="mb-3 flex items-start gap-2">
         <FileUp className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div>
-          <h2 className="font-semibold">Statement of Understanding</h2>
-          <p className="text-sm text-muted-foreground">This PDF is attached to every new joiner welcome email.</p>
+          <h2 className="text-xl font-normal tracking-[-0.02em]">Statement of Understanding</h2>
+          <p className="text-sm text-muted-foreground">
+            This PDF is attached to every new joiner welcome email.
+          </p>
         </div>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -275,7 +296,9 @@ function SettingRow({ item, editable }: { item: SettingItem; editable: boolean }
       className="grid gap-3 p-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_auto] lg:items-start"
     >
       <div>
-        <Label htmlFor={kind === 'weekdays' || kind === 'pairs' ? undefined : id}>{settingLabel(item.key)}</Label>
+        <Label htmlFor={kind === 'weekdays' || kind === 'pairs' ? undefined : id}>
+          {settingLabel(item.key)}
+        </Label>
         <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
       </div>
       <div className="min-w-0">
@@ -320,7 +343,17 @@ interface EditorProps {
   onToggle: (checked: boolean) => void;
 }
 
-function SettingEditor({ id, kind, value, jsonText, disabled, hints, onChange, onJsonChange, onToggle }: EditorProps) {
+function SettingEditor({
+  id,
+  kind,
+  value,
+  jsonText,
+  disabled,
+  hints,
+  onChange,
+  onJsonChange,
+  onToggle,
+}: EditorProps) {
   switch (kind) {
     case 'boolean':
       return (
@@ -344,18 +377,22 @@ function SettingEditor({ id, kind, value, jsonText, disabled, hints, onChange, o
       );
     case 'clock':
       return (
-        <Input
+        <TimeField
           id={id}
-          type="time"
-          className="max-w-40"
-          value={String(value)}
+          className="sm:w-40"
+          value={String(value).slice(0, 5)}
           disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={onChange}
         />
       );
     case 'text':
       return (
-        <Input id={id} value={String(value)} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
+        <Input
+          id={id}
+          value={String(value)}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+        />
       );
     case 'weekdays': {
       const days = new Set(value as number[]);

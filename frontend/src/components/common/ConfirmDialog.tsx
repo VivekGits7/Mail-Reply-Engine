@@ -20,7 +20,14 @@ interface ConfirmDialogProps {
   destructive?: boolean;
 }
 
-export function ConfirmDialog({ trigger, title, description, confirmLabel, onConfirm, destructive }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  trigger,
+  title,
+  description,
+  confirmLabel,
+  onConfirm,
+  destructive,
+}: ConfirmDialogProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>

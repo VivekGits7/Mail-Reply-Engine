@@ -35,7 +35,14 @@ describe('Settings', () => {
     store.dispatch(
       setCredentials({
         token: 't',
-        user: { user_id: 'u1', name: 'TCG User', email: 'tcg@tcgdigital.com', role: 'hr_admin', complaints_access: false, is_active: true },
+        user: {
+          user_id: 'u1',
+          name: 'TCG User',
+          email: 'tcg@tcgdigital.com',
+          role: 'hr_admin',
+          complaints_access: false,
+          is_active: true,
+        },
       }),
     );
   });
@@ -44,8 +51,8 @@ describe('Settings', () => {
     renderWithProviders(<Settings />);
     expect(await screen.findByText('Max followups')).toBeInTheDocument();
     expect(screen.queryByText('Kill switch')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Sending start')).toHaveAttribute('type', 'time');
-    expect(screen.getByLabelText('Sending start')).toHaveValue('09:00');
+    expect(screen.getByLabelText('Sending start')).toHaveAttribute('role', 'combobox');
+    expect(screen.getByLabelText('Sending start')).toHaveTextContent('09:00');
     expect(screen.getByLabelText('Survey levels')).toHaveValue('L1, L2');
     expect(screen.getByLabelText('HR owner')).toHaveValue('hr@tcgdigital.com');
   });
@@ -75,12 +82,21 @@ describe('Settings', () => {
     store.dispatch(
       setCredentials({
         token: 't',
-        user: { user_id: 'u2', name: 'Viewer', email: 'viewer@tcgdigital.com', role: 'hr_viewer', complaints_access: false, is_active: true },
+        user: {
+          user_id: 'u2',
+          name: 'Viewer',
+          email: 'viewer@tcgdigital.com',
+          role: 'hr_viewer',
+          complaints_access: false,
+          is_active: true,
+        },
       }),
     );
     renderWithProviders(<Settings />);
     expect(await screen.findByLabelText('Max followups')).toBeDisabled();
-    expect(screen.getByText('You can see every setting. Only HR admins can change them.')).toBeInTheDocument();
+    expect(
+      screen.getByText('You can see every setting. Only HR admins can change them.'),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 

@@ -3,7 +3,7 @@ import { useTheme } from 'next-themes';
 import { selectUser } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { authApi } from '@/components/auth/Authapi';
-import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/visual/Avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logout } from '@/utils/logout';
-import { getInitials, humanize } from '@/utils/utility';
+import { humanize } from '@/utils/utility';
 
 export function UserMenu() {
   const user = useAppSelector(selectUser);
@@ -33,14 +33,15 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-9 gap-2 px-2" aria-label="Account menu">
-          <span className="flex size-7 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-            {getInitials(user?.name ?? 'HR')}
-          </span>
-          <span className="hidden text-sm sm:inline">{user?.name}</span>
-        </Button>
+        <button
+          type="button"
+          className="rounded-full transition-transform duration-200 hover:scale-[1.04] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          aria-label="Account menu"
+        >
+          <Avatar name={user?.name ?? 'HR'} size="md" className="size-11 ring-card" />
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-60 p-1.5">
         <DropdownMenuLabel className="font-normal">
           <p className="truncate text-sm font-medium">{user?.name}</p>
           <p className="truncate text-xs text-muted-foreground">{user?.email}</p>

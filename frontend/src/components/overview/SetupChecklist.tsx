@@ -26,7 +26,10 @@ export function SetupChecklist({
   const doneCount = steps.filter((step) => step.done).length;
   if (doneCount === steps.length) return null;
   const current = steps.find((step) => !step.done)?.id;
-  const isDone = Object.fromEntries(steps.map((step) => [step.id, step.done])) as Record<SetupStep['id'], boolean>;
+  const isDone = Object.fromEntries(steps.map((step) => [step.id, step.done])) as Record<
+    SetupStep['id'],
+    boolean
+  >;
   const ready = isDone.test_inbox && isDone.contacts;
 
   const content: Record<SetupStep['id'], { title: string; detail: string; action: ReactNode }> = {
@@ -77,25 +80,38 @@ export function SetupChecklist({
   };
 
   return (
-    <section aria-labelledby="setup-title" className="mb-6 rounded-lg border bg-card p-4 sm:p-5">
+    <section aria-labelledby="setup-title" className="mb-6 panel p-5 sm:p-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-        <h2 id="setup-title" className="font-semibold">
+        <h2 id="setup-title" className="text-xl font-normal tracking-[-0.02em]">
           Finish setup before the agent emails anyone
         </h2>
-        <p className="text-sm text-muted-foreground tabular-nums">
-          {doneCount} of {steps.length} done
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-2 w-24 gap-1" aria-hidden="true">
+            {steps.map((step) => (
+              <span
+                key={step.id}
+                className={cn('h-full flex-1 rounded-full', step.done ? 'bg-mint' : 'bg-muted')}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {doneCount} of {steps.length} done
+          </p>
+        </div>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {isAdmin
           ? 'This list goes away once every step is done.'
           : 'An HR admin needs to finish these steps. You can open each one to see where things stand.'}
       </p>
-      <ol className="mt-4 divide-y border-t">
+      <ol className="mt-5 grid gap-2">
         {steps.map((step, index) => {
           const { title, detail, action } = content[step.id];
           return (
-            <li key={step.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:gap-4">
+            <li
+              key={step.id}
+              className="flex flex-col gap-3 panel-inset px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4"
+            >
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <StepMarker done={step.done} number={index + 1} />
                 <div className="min-w-0">
@@ -116,10 +132,10 @@ export function SetupChecklist({
 }
 
 function StepMarker({ done, number }: { done: boolean; number: number }) {
-  if (done) return <CircleCheck className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />;
+  if (done) return <CircleCheck className="mt-0.5 size-7 shrink-0 text-success" aria-hidden="true" />;
   return (
     <span
-      className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium text-muted-foreground tabular-nums"
+      className="mt-0.5 flex size-7 shrink-0 items-center justify-center pill rounded-full text-xs font-medium text-muted-foreground tabular-nums"
       aria-hidden="true"
     >
       {number}

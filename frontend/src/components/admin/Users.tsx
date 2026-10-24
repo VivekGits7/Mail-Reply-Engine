@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Pencil } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Pencil, Plus, UserCheck, UserX } from 'lucide-react';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Field } from '@/components/common/Field';
 import { FilterBar } from '@/components/common/FilterBar';
@@ -25,7 +25,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { fieldProps } from '@/utils/fieldProps';
 import { useUrlState } from '@/hooks/useUrlState';
@@ -41,7 +40,48 @@ import {
   type UserSortBy,
   type SortOrder,
 } from '@/types';
+import { Avatar } from '@/components/visual/Avatar';
+import { Breakdown, MiniStat } from '@/components/visual/Breakdown';
+import { SelectField } from '@/components/common/SelectField';
 import { userKeys, userListQuery, usersApi } from './Usersapi';
+
+function UserStats({ role, onRole }: { role?: string; onRole: (role: string | undefined) => void }) {
+  const admins = useQuery(userListQuery({ role: UserRole.HR_ADMIN, limit: 1, offset: 0 }));
+  const viewers = useQuery(userListQuery({ role: UserRole.HR_VIEWER, limit: 1, offset: 0 }));
+  const active = useQuery(userListQuery({ is_active: true, limit: 1, offset: 0 }));
+  const inactive = useQuery(userListQuery({ is_active: false, limit: 1, offset: 0 }));
+  return (
+    <Breakdown
+      title="Users by role"
+      totalLabel="People with access"
+      loading={admins.isPending || viewers.isPending}
+      segments={[
+        { key: UserRole.HR_ADMIN, label: 'HR admins', tone: 'iris', value: admins.data?.total ?? 0 },
+        { key: UserRole.HR_VIEWER, label: 'HR viewers', tone: 'azure', value: viewers.data?.total ?? 0 },
+      ]}
+      active={role}
+      onSelect={onRole}
+      aside={
+        <>
+          <MiniStat
+            label="Active"
+            icon={UserCheck}
+            tone="mint"
+            value={active.data?.total}
+            loading={active.isPending}
+          />
+          <MiniStat
+            label="Deactivated"
+            icon={UserX}
+            tone="neutral"
+            value={inactive.data?.total}
+            loading={inactive.isPending}
+          />
+        </>
+      }
+    />
+  );
+}
 
 export default function Users() {
   const { get, set, page } = useUrlState();
@@ -69,6 +109,7 @@ export default function Users() {
           />
         }
       />
+      <UserStats role={params.role} onRole={(role) => set({ role })} />
       <FilterBar>
         <SearchInput label="Search users" value={params.search} onSearch={(search) => set({ search })} />
         <FilterSelect
@@ -89,7 +130,16 @@ export default function Users() {
           ]}
           onChange={(is_active) => set({ is_active })}
         />
-        <SortSelect options={[{ label: 'Newest first', sort_by: 'created_at', sort_order: 'latest' }, { label: 'Name A to Z', sort_by: 'name', sort_order: 'a_to_z' }, { label: 'Last login', sort_by: 'last_login_at', sort_order: 'z_to_a' }]} sortBy={params.sort_by} sortOrder={params.sort_order} onChange={(sort_by, sort_order) => set({ sort_by, sort_order })} />
+        <SortSelect
+          options={[
+            { label: 'Newest first', sort_by: 'created_at', sort_order: 'latest' },
+            { label: 'Name A to Z', sort_by: 'name', sort_order: 'a_to_z' },
+            { label: 'Last login', sort_by: 'last_login_at', sort_order: 'z_to_a' },
+          ]}
+          sortBy={params.sort_by}
+          sortOrder={params.sort_order}
+          onChange={(sort_by, sort_order) => set({ sort_by, sort_order })}
+        />
       </FilterBar>
       {users.isPending ? (
         <TableSkeleton />
@@ -115,8 +165,13 @@ export default function Users() {
                 {users.data.data.map((user) => (
                   <TableRow key={user.user_id}>
                     <TableCell>
-                      <span className="font-medium">{user.name}</span>
-                      <span className="block text-xs text-muted-foreground">{user.email}</span>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.name} size="md" />
+                        <div className="min-w-0">
+                          <span className="font-medium">{user.name}</span>
+                          <span className="block text-xs text-muted-foreground">{user.email}</span>
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>{user.role === UserRole.HR_ADMIN ? 'HR admin' : 'HR viewer'}</TableCell>
                     <TableCell>{user.complaints_access ? 'Allowed' : 'No access'}</TableCell>
@@ -179,6 +234,7 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
   };
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -262,14 +318,23 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
             />
           </Field>
           <Field id="user-role" label="Role" error={errors.role?.message}>
-            <NativeSelect
-              className="w-full"
-              {...fieldProps('user-role', errors.role?.message)}
-              {...register('role')}
-            >
-              <NativeSelectOption value={UserRole.HR_VIEWER}>HR viewer</NativeSelectOption>
-              <NativeSelectOption value={UserRole.HR_ADMIN}>HR admin</NativeSelectOption>
-            </NativeSelect>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field }) => (
+                <SelectField
+                  {...fieldProps('user-role', errors.role?.message)}
+                  className="w-full sm:w-full"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  onBlur={field.onBlur}
+                  options={[
+                    { value: UserRole.HR_VIEWER, label: 'HR viewer' },
+                    { value: UserRole.HR_ADMIN, label: 'HR admin' },
+                  ]}
+                />
+              )}
+            />
           </Field>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" {...register('complaints_access')} /> Complaints access

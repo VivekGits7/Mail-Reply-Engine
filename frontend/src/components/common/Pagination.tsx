@@ -14,11 +14,11 @@ export function Pagination({ total, limit, offset, onChange }: PaginationProps) 
   const last = Math.min(offset + limit, total);
 
   return (
-    <nav aria-label="Pagination" className="mt-3 flex items-center justify-between gap-3 text-sm">
-      <p className="text-muted-foreground tabular-nums">
+    <nav aria-label="Pagination" className="mt-4 flex items-center justify-between gap-3 text-sm">
+      <p className="pill px-3.5 py-1.5 text-muted-foreground tabular-nums">
         {first}–{last} of {total}
       </p>
-      <div className="flex gap-1">
+      <div className="flex gap-1.5">
         <Button
           variant="outline"
           size="sm"

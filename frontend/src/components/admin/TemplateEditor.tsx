@@ -46,7 +46,8 @@ function Editor({ template }: { template: TemplateData }) {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const cache = useQueryClient();
-  const hasUnsavedChanges = subject !== template.subject || body !== template.body_html || active !== template.is_active;
+  const hasUnsavedChanges =
+    subject !== template.subject || body !== template.body_html || active !== template.is_active;
   const save = useMutation({
     mutationFn: () =>
       adminApi.updateTemplate(template.template_key, {
@@ -70,7 +71,7 @@ function Editor({ template }: { template: TemplateData }) {
     <section>
       <Link
         to="/admin/templates"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex h-9 items-center gap-1.5 pill px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" /> Email templates
       </Link>
@@ -116,9 +117,11 @@ function Editor({ template }: { template: TemplateData }) {
           )}
         </div>
         <aside className="space-y-4">
-          <div className="rounded-lg border p-4">
-            <h2 className="font-semibold">Placeholders</h2>
-            <p className="my-2 text-xs text-muted-foreground">Enter sample values and save edits before previewing.</p>
+          <div className="panel p-5 sm:p-6">
+            <h2 className="text-lg font-normal tracking-tight">Placeholders</h2>
+            <p className="my-2 text-xs text-muted-foreground">
+              Enter sample values and save edits before previewing.
+            </p>
             <div className="space-y-3">
               {template.placeholders.map((key) => (
                 <Field key={key} id={`placeholder-${key}`} label={key}>
@@ -140,8 +143,8 @@ function Editor({ template }: { template: TemplateData }) {
             </Button>
           </div>
           {preview && (
-            <div className="rounded-lg border p-4">
-              <h2 className="mb-2 font-semibold">Rendered preview</h2>
+            <div className="panel p-5 sm:p-6">
+              <h2 className="mb-2 text-lg font-normal tracking-tight">Rendered preview</h2>
               <p className="mb-2 text-sm font-medium break-words">{preview.subject}</p>
               <iframe
                 title="Email preview"

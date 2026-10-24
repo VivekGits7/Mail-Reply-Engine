@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
+import { SelectField } from '@/components/common/SelectField';
 import { useUrlState } from '@/hooks/useUrlState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
@@ -85,8 +85,7 @@ function NewChecklist() {
   const base = groups.data?.find((group) => group.hire_category === category && group.location === '*');
   const exists = groups.data?.some(
     (group) =>
-      group.hire_category === category &&
-      group.location.toLowerCase() === location.trim().toLowerCase(),
+      group.hire_category === category && group.location.toLowerCase() === location.trim().toLowerCase(),
   );
   const save = useMutation({
     mutationFn: () =>
@@ -123,17 +122,15 @@ function NewChecklist() {
         </DialogHeader>
         <label className="space-y-1 text-sm">
           Hire type
-          <NativeSelect
-            className="w-full"
+          <SelectField
+            className="w-full sm:w-full"
             value={category}
-            onChange={(event) => setCategory(event.target.value as HireCategory)}
-          >
-            {Object.values(HireCategory).map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {HIRE_CATEGORY_LABELS[value]}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            onValueChange={(next) => setCategory(next as HireCategory)}
+            options={Object.values(HireCategory).map((value) => ({
+              value,
+              label: HIRE_CATEGORY_LABELS[value],
+            }))}
+          />
         </label>
         <label className="space-y-1 text-sm">
           Location
@@ -155,7 +152,10 @@ function NewChecklist() {
         )}
         {groups.isError && <ErrorState error={groups.error} onRetry={() => groups.refetch()} />}
         <DialogFooter>
-          <Button disabled={!base || !location.trim() || Boolean(exists) || save.isPending} onClick={() => save.mutate()}>
+          <Button
+            disabled={!base || !location.trim() || Boolean(exists) || save.isPending}
+            onClick={() => save.mutate()}
+          >
             {save.isPending ? 'Creating…' : 'Create checklist'}
           </Button>
         </DialogFooter>
@@ -189,9 +189,9 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
     );
   }
   return (
-    <section className="min-w-0 rounded-lg border p-4">
+    <section className="min-w-0 panel p-5">
       <div className="mb-4 flex items-baseline justify-between gap-2">
-        <h2 className="font-semibold">
+        <h2 className="text-lg font-normal tracking-tight">
           {HIRE_CATEGORY_LABELS[group.hire_category] ?? group.hire_category} ·{' '}
           {group.location === '*' ? 'Default for every location' : group.location}
         </h2>
@@ -217,15 +217,16 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
             </label>
             <label className="text-xs text-muted-foreground">
               Check
-              <NativeSelect
-                className="w-full"
+              <SelectField
+                className="w-full sm:w-full"
                 value={item.check_mode ?? CheckMode.TEXT}
                 disabled={!isAdmin}
-                onChange={(event) => change(index, { check_mode: event.target.value as CheckMode })}
-              >
-                <NativeSelectOption value={CheckMode.TEXT}>Text</NativeSelectOption>
-                <NativeSelectOption value={CheckMode.PHOTO}>Photo</NativeSelectOption>
-              </NativeSelect>
+                onValueChange={(next) => change(index, { check_mode: next as CheckMode })}
+                options={[
+                  { value: CheckMode.TEXT, label: 'Text' },
+                  { value: CheckMode.PHOTO, label: 'Photo' },
+                ]}
+              />
             </label>
             <label className="flex items-center gap-2 text-xs">
               <input
