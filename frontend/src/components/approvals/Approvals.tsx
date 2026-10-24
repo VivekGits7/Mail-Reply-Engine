@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { MailCheck, Presentation } from 'lucide-react';
 import { Link } from 'react-router';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
@@ -8,12 +9,15 @@ import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/Query
 import { SortSelect, type SortOption } from '@/components/common/SortSelect';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { TableShell } from '@/components/common/TableShell';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useUrlState } from '@/hooks/useUrlState';
 import { optionsFrom, statusLabel } from '@/utils/labels';
 import { formatRelative } from '@/utils/utility';
 import { ApprovalStatus, ApprovalType, type SortOrder } from '@/types';
+import { Avatar } from '@/components/visual/Avatar';
+import { SelectField } from '@/components/common/SelectField';
+import { cn } from '@/utils/cn';
+import { ApprovalStats } from './ApprovalStats';
 import { approvalListQuery } from './Approvalsapi';
 
 const TYPE_LABELS: Record<string, string> = { reply: 'Reply draft', induction_schedule: 'Induction plan' };
@@ -39,19 +43,20 @@ export default function Approvals() {
         title="Approvals"
         description="Replies and induction plans the agent drafted. Nothing in this queue is sent until someone approves it."
       />
+      <ApprovalStats
+        status={status}
+        approvalType={filters.approval_type}
+        onType={(value) => set({ approval_type: value })}
+        onStatus={(value) => set({ status: value })}
+      />
       <FilterBar>
-        <NativeSelect
+        <SelectField
           aria-label="Status"
+          prefix="Status"
           value={status}
-          className="w-full sm:w-auto"
-          onChange={(event) => set({ status: event.target.value === ApprovalStatus.PENDING ? undefined : event.target.value })}
-        >
-          {Object.values(ApprovalStatus).map((value) => (
-            <NativeSelectOption key={value} value={value}>
-              Status: {statusLabel(value).label}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          onValueChange={(next) => set({ status: next === ApprovalStatus.PENDING ? undefined : next })}
+          options={Object.values(ApprovalStatus).map((value) => ({ value, label: statusLabel(value).label }))}
+        />
         <FilterSelect
           label="Type"
           value={filters.approval_type}
@@ -71,7 +76,11 @@ export default function Approvals() {
         <ErrorState error={approvals.error} onRetry={() => approvals.refetch()} />
       ) : approvals.data.data.length === 0 ? (
         <EmptyState
-          title={status === ApprovalStatus.PENDING ? 'Nothing waiting for approval' : 'No approvals match these filters'}
+          title={
+            status === ApprovalStatus.PENDING
+              ? 'Nothing waiting for approval'
+              : 'No approvals match these filters'
+          }
           description="Drafts land here when the agent is unsure or a reply needs a human."
         />
       ) : (
@@ -90,17 +99,46 @@ export default function Approvals() {
                 {approvals.data.data.map((approval) => (
                   <TableRow key={approval.approval_id}>
                     <TableCell className="max-w-md whitespace-normal">
-                      <Link
-                        to={`/approvals/${approval.approval_id}`}
-                        className="font-medium hover:text-primary hover:underline"
-                      >
-                        {TYPE_LABELS[approval.approval_type]}
-                      </Link>
-                      {approval.summary && (
-                        <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{approval.summary}</span>
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={cn(
+                            'flex size-10 shrink-0 items-center justify-center rounded-2xl',
+                            approval.approval_type === 'reply'
+                              ? 'bg-iris/12 text-iris'
+                              : 'bg-azure/12 text-azure',
+                          )}
+                        >
+                          {approval.approval_type === 'reply' ? (
+                            <MailCheck className="size-4.5" aria-hidden="true" />
+                          ) : (
+                            <Presentation className="size-4.5" aria-hidden="true" />
+                          )}
+                        </span>
+                        <div className="min-w-0">
+                          <Link
+                            to={`/approvals/${approval.approval_id}`}
+                            className="font-medium hover:text-primary hover:underline"
+                          >
+                            {TYPE_LABELS[approval.approval_type]}
+                          </Link>
+                          {approval.summary && (
+                            <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">
+                              {approval.summary}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {approval.person_name ? (
+                        <span className="flex items-center gap-2">
+                          <Avatar name={approval.person_name} size="sm" />
+                          {approval.person_name}
+                        </span>
+                      ) : (
+                        '—'
                       )}
                     </TableCell>
-                    <TableCell>{approval.person_name ?? '—'}</TableCell>
                     <TableCell>
                       <StatusBadge value={approval.status} />
                     </TableCell>

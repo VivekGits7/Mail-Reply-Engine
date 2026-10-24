@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { caseKeys } from '@/components/cases/Casesapi';
@@ -17,7 +17,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
+import { SelectField } from '@/components/common/SelectField';
+import { DateField } from '@/components/common/DateField';
 import { fieldProps } from '@/utils/fieldProps';
 import { getErrorMessage } from '@/utils/apiError';
 import { applyServerErrors } from '@/utils/formErrors';
@@ -86,6 +87,7 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
   const navigate = useNavigate();
   const {
     register,
+    control,
     handleSubmit,
     setError,
     reset,
@@ -112,7 +114,9 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
         navigate(`/cases/${result.created.data.case_id}`);
       } else if (result.updated) {
         const rechecked = result.updated.data.rechecked_documents;
-        showToast.success(rechecked ? `Saved. ${rechecked} documents will be checked again.` : 'Joiner details saved');
+        showToast.success(
+          rechecked ? `Saved. ${rechecked} documents will be checked again.` : 'Joiner details saved',
+        );
       }
     },
     onError: (error) => {
@@ -144,7 +148,11 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
           className="grid gap-4 sm:grid-cols-2"
         >
           <Field id="full_name" label="Full name" error={errors.full_name?.message}>
-            <Input autoComplete="off" {...fieldProps('full_name', errors.full_name?.message)} {...register('full_name')} />
+            <Input
+              autoComplete="off"
+              {...fieldProps('full_name', errors.full_name?.message)}
+              {...register('full_name')}
+            />
           </Field>
           <Field id="personal_email" label="Personal email" error={errors.personal_email?.message}>
             <Input
@@ -156,23 +164,47 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
           </Field>
           {!isEdit && (
             <Field id="hire_category" label="Hire type" error={errors.hire_category?.message}>
-              <NativeSelect className="w-full" {...fieldProps('hire_category')} {...register('hire_category')}>
-                <NativeSelectOption value={HireCategory.LATERAL}>Lateral</NativeSelectOption>
-                <NativeSelectOption value={HireCategory.CAMPUS}>Campus</NativeSelectOption>
-              </NativeSelect>
+              <Controller
+                control={control}
+                name="hire_category"
+                render={({ field }) => (
+                  <SelectField
+                    {...fieldProps('hire_category')}
+                    className="w-full sm:w-full"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                    options={[
+                      { value: HireCategory.LATERAL, label: 'Lateral' },
+                      { value: HireCategory.CAMPUS, label: 'Campus' },
+                    ]}
+                  />
+                )}
+              />
             </Field>
           )}
           <Field id="level" label="Level" hint="Like L4" error={errors.level?.message}>
-            <Input spellCheck={false} {...fieldProps('level', errors.level?.message)} {...register('level')} />
+            <Input
+              spellCheck={false}
+              {...fieldProps('level', errors.level?.message)}
+              {...register('level')}
+            />
           </Field>
           <Field id="location" label="Base location" error={errors.location?.message}>
             <Input {...fieldProps('location', errors.location?.message)} {...register('location')} />
           </Field>
           <Field id="joining_date" label="Joining date" error={errors.joining_date?.message}>
-            <Input
-              type="date"
-              {...fieldProps('joining_date', errors.joining_date?.message)}
-              {...register('joining_date')}
+            <Controller
+              control={control}
+              name="joining_date"
+              render={({ field }) => (
+                <DateField
+                  {...fieldProps('joining_date', errors.joining_date?.message)}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
             />
           </Field>
           <Field
@@ -181,10 +213,17 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
             hint="Only used to match documents, never sent to the AI"
             error={errors.date_of_birth?.message}
           >
-            <Input
-              type="date"
-              {...fieldProps('date_of_birth', errors.date_of_birth?.message)}
-              {...register('date_of_birth')}
+            <Controller
+              control={control}
+              name="date_of_birth"
+              render={({ field }) => (
+                <DateField
+                  {...fieldProps('date_of_birth', errors.date_of_birth?.message)}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
             />
           </Field>
           <Field id="recruiter_email" label="Recruiter email" error={errors.recruiter_email?.message}>
@@ -196,7 +235,10 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
             />
           </Field>
           <Field id="manager_name" label="Reporting manager" error={errors.manager_name?.message}>
-            <Input {...fieldProps('manager_name', errors.manager_name?.message)} {...register('manager_name')} />
+            <Input
+              {...fieldProps('manager_name', errors.manager_name?.message)}
+              {...register('manager_name')}
+            />
           </Field>
           <Field id="manager_email" label="Manager email" error={errors.manager_email?.message}>
             <Input

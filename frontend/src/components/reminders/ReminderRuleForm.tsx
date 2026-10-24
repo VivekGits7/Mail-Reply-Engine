@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Field } from '@/components/common/Field';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
+import { SelectField } from '@/components/common/SelectField';
 import { DATA_SOURCE_LABELS } from '@/utils/labels';
 import { fieldProps } from '@/utils/fieldProps';
 import { getErrorMessage } from '@/utils/apiError';
@@ -89,6 +89,7 @@ export function ReminderRuleForm({ trigger, rule }: { trigger: ReactNode; rule?:
   };
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -163,13 +164,23 @@ export function ReminderRuleForm({ trigger, rule }: { trigger: ReactNode; rule?:
           )}
           {!rule && (
             <Field id="rule-source" label="Data source">
-              <NativeSelect className="w-full" {...fieldProps('rule-source')} {...register('data_source')}>
-                {Object.values(DataSource).map((value) => (
-                  <NativeSelectOption key={value} value={value}>
-                    {DATA_SOURCE_LABELS[value]}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+              <Controller
+                control={control}
+                name="data_source"
+                render={({ field }) => (
+                  <SelectField
+                    {...fieldProps('rule-source')}
+                    className="w-full sm:w-full"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                    options={Object.values(DataSource).map((value) => ({
+                      value,
+                      label: DATA_SOURCE_LABELS[value],
+                    }))}
+                  />
+                )}
+              />
             </Field>
           )}
           <Field id="rule-recipient" label="Recipient column" error={errors.recipient_field?.message}>

@@ -25,17 +25,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { SelectField } from '@/components/common/SelectField';
 import { useUrlState } from '@/hooks/useUrlState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { getErrorMessage } from '@/utils/apiError';
+import { HIRE_CATEGORY_LABELS } from '@/utils/labels';
 import { showToast } from '@/utils/toast';
 import { formatDate } from '@/utils/utility';
-import { HireCategory, ReportStatus, SurveyStatus, type SortOrder, type SurveySortBy, type SurveyStatus as SurveyStatusType } from '@/types';
+import {
+  HireCategory,
+  ReportStatus,
+  SurveyStatus,
+  type SortOrder,
+  type SurveySortBy,
+  type SurveyStatus as SurveyStatusType,
+} from '@/types';
 import { feedbackApi, feedbackKeys, reportListQuery, surveyListQuery } from './Feedbackapi';
+import { FeedbackStats } from './FeedbackStats';
 
 export default function Feedback() {
   const { get, set, page } = useUrlState();
@@ -51,7 +60,10 @@ export default function Feedback() {
     sort_by: (get('sort_by') ?? 'sent_at') as SurveySortBy,
     sort_order: (get('sort_order') ?? 'latest') as SortOrder,
   };
-  const reportParams = { status: get('report_status') as ReportStatus | undefined, sort_order: (get('report_order') ?? 'latest') as SortOrder };
+  const reportParams = {
+    status: get('report_status') as ReportStatus | undefined,
+    sort_order: (get('report_order') ?? 'latest') as SortOrder,
+  };
   const surveys = useQuery({ ...surveyListQuery(params), enabled: tab === 'surveys' });
   const reports = useQuery({ ...reportListQuery(reportParams), enabled: tab === 'reports' });
   return (
@@ -74,6 +86,10 @@ export default function Feedback() {
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
         <TabsContent value="surveys" className="mt-5">
+          <FeedbackStats
+            flagged={params.flagged === true}
+            onFlagged={(active) => set({ flagged: active ? 'true' : undefined })}
+          />
           <FilterBar>
             <SearchInput label="Search people" value={params.search} onSearch={(search) => set({ search })} />
             <FilterSelect
@@ -103,7 +119,16 @@ export default function Feedback() {
               options={[{ value: 'true', label: 'Needs attention' }]}
               onChange={(flagged) => set({ flagged })}
             />
-            <SortSelect options={[{ label: 'Recently sent', sort_by: 'sent_at', sort_order: 'latest' }, { label: 'Lowest score', sort_by: 'score', sort_order: 'a_to_z' }, { label: 'Name A to Z', sort_by: 'full_name', sort_order: 'a_to_z' }]} sortBy={params.sort_by} sortOrder={params.sort_order} onChange={(sort_by, sort_order) => set({ sort_by, sort_order })} />
+            <SortSelect
+              options={[
+                { label: 'Recently sent', sort_by: 'sent_at', sort_order: 'latest' },
+                { label: 'Lowest score', sort_by: 'score', sort_order: 'a_to_z' },
+                { label: 'Name A to Z', sort_by: 'full_name', sort_order: 'a_to_z' },
+              ]}
+              sortBy={params.sort_by}
+              sortOrder={params.sort_order}
+              onChange={(sort_by, sort_order) => set({ sort_by, sort_order })}
+            />
           </FilterBar>
           {surveys.isPending ? (
             <TableSkeleton />
@@ -161,8 +186,21 @@ export default function Feedback() {
         </TabsContent>
         <TabsContent value="reports" className="mt-5">
           <FilterBar>
-            <FilterSelect label="Status" value={reportParams.status} options={Object.values(ReportStatus).map((value) => ({ value, label: value }))} onChange={(report_status) => set({ report_status })} />
-            <FilterSelect label="Order" value={reportParams.sort_order} options={[{ value: 'latest', label: 'Newest' }, { value: 'oldest', label: 'Oldest' }]} onChange={(report_order) => set({ report_order })} />
+            <FilterSelect
+              label="Status"
+              value={reportParams.status}
+              options={Object.values(ReportStatus).map((value) => ({ value, label: value }))}
+              onChange={(report_status) => set({ report_status })}
+            />
+            <FilterSelect
+              label="Order"
+              value={reportParams.sort_order}
+              options={[
+                { value: 'latest', label: 'Newest' },
+                { value: 'oldest', label: 'Oldest' },
+              ]}
+              onChange={(report_order) => set({ report_order })}
+            />
           </FilterBar>
           {reports.isPending ? (
             <TableSkeleton />
@@ -247,17 +285,15 @@ function UploadResponses() {
         </DialogHeader>
         <label className="space-y-1 text-sm">
           Form variant
-          <NativeSelect
+          <SelectField
+            className="w-full sm:w-full"
             value={variant}
-            onChange={(event) => setVariant(event.target.value as HireCategory)}
-            className="w-full"
-          >
-            {Object.values(HireCategory).map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {value}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            onValueChange={(next) => setVariant(next as HireCategory)}
+            options={Object.values(HireCategory).map((value) => ({
+              value,
+              label: HIRE_CATEGORY_LABELS[value] ?? value,
+            }))}
+          />
         </label>
         <FilePicker purpose="survey_export" file={file} onChange={setFile} uploading={upload.isPending} />
         <DialogFooter>

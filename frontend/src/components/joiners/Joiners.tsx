@@ -28,7 +28,9 @@ import {
   type OnboardingStage as Stage,
   type SortOrder,
 } from '@/types';
+import { Avatar } from '@/components/visual/Avatar';
 import { JoinerFormDialog } from './JoinerFormDialog';
+import { JoinerStats } from './JoinerStats';
 import { joinerListQuery } from './Joinersapi';
 
 const SORT_OPTIONS: SortOption[] = [
@@ -54,7 +56,9 @@ export default function Joiners() {
     sort_order: (get('sort_order') ?? 'latest') as SortOrder,
   };
   const joiners = useQuery(joinerListQuery({ ...filters, ...page }));
-  const hasFilters = Boolean(search || filters.stage || filters.flag || filters.hire_category || filters.joining_from);
+  const hasFilters = Boolean(
+    search || filters.stage || filters.flag || filters.hire_category || filters.joining_from,
+  );
 
   return (
     <section>
@@ -73,6 +77,15 @@ export default function Joiners() {
             />
           )
         }
+      />
+
+      <JoinerStats
+        stage={filters.stage}
+        flag={filters.flag}
+        joiningFrom={filters.joining_from}
+        onStage={(value) => set({ stage: value })}
+        onAtRisk={(active) => set({ flag: active ? CaseFlag.DROPOUT_RISK : undefined })}
+        onThisWeek={(range) => set({ joining_from: range?.from, joining_to: range?.to })}
       />
 
       <FilterBar>
@@ -139,18 +152,32 @@ export default function Joiners() {
               <TableBody>
                 {joiners.data.data.map((joiner) => (
                   <TableRow key={joiner.case_id}>
-                    <TableCell className="max-w-64">
-                      <Link
-                        to={`/cases/${joiner.case_id}`}
-                        className="block truncate font-medium hover:text-primary hover:underline"
-                      >
-                        {joiner.full_name}
-                      </Link>
-                      <span className="text-xs text-muted-foreground">
-                        {[humanize(joiner.hire_category), joiner.level, joiner.location].filter(Boolean).join(' · ')}
-                      </span>
+                    <TableCell className="max-w-72">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={joiner.full_name} size="md" />
+                        <div className="min-w-0">
+                          <Link
+                            to={`/cases/${joiner.case_id}`}
+                            className="block truncate font-medium hover:text-primary hover:underline"
+                          >
+                            {joiner.full_name}
+                          </Link>
+                          <span className="text-xs text-muted-foreground">
+                            {[humanize(joiner.hire_category), joiner.level, joiner.location]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell className="tabular-nums">{formatDate(joiner.joining_date)}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatDate(joiner.joining_date)}
+                      {joiner.joining_date && (
+                        <span className="block text-xs text-muted-foreground">
+                          {formatRelative(joiner.joining_date)}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col items-start gap-1">
                         <StatusBadge value={joiner.stage} />

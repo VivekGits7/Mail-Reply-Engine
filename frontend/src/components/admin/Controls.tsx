@@ -34,7 +34,7 @@ export default function Controls() {
         description="Stop or allow sending, choose where test emails go, and check that the mailbox is connected."
       />
       {!isAdmin && (
-        <p className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+        <p className="mb-4 rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
           You can see the current state. Only HR admins can change these switches.
         </p>
       )}
@@ -62,7 +62,8 @@ function useStatusRefresh() {
 }
 
 function allowDescription(status: StatusData): string {
-  if (status.dry_run && status.test_inbox) return `Emails waiting in the queue go to the test inbox ${status.test_inbox}.`;
+  if (status.dry_run && status.test_inbox)
+    return `Emails waiting in the queue go to the test inbox ${status.test_inbox}.`;
   if (status.dry_run) return 'Dry run has no test inbox yet, so emails stay on hold until you set one.';
   return 'Dry run is off. Emails waiting in the queue go to their real recipients right away.';
 }
@@ -76,7 +77,9 @@ function KillSwitchCard({ status, isAdmin }: { status: StatusData; isAdmin: bool
     onSuccess: (res) => {
       refresh();
       showToast.success(
-        res.data.kill_switch ? 'Sending stopped. Nothing goes out until it is allowed again.' : 'Sending allowed again',
+        res.data.kill_switch
+          ? 'Sending stopped. Nothing goes out until it is allowed again.'
+          : 'Sending allowed again',
       );
       setReason('');
     },
@@ -170,14 +173,19 @@ function DryRunCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean 
       {held && (
         <p
           role="alert"
-          className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-sm text-destructive"
+          className="mb-3 rounded-2xl border border-destructive/20 bg-destructive/8 px-4 py-3 text-sm text-destructive"
         >
           No test inbox is set, so every email is on hold. Add one below to start test sending.
         </p>
       )}
       {isAdmin && (
         <form noValidate onSubmit={saveInbox} className="space-y-3">
-          <Field id="test-inbox" label="Test inbox" error={error} hint="A mailbox your team reads, used only for test emails">
+          <Field
+            id="test-inbox"
+            label="Test inbox"
+            error={error}
+            hint="A mailbox your team reads, used only for test emails"
+          >
             <Input
               type="email"
               autoComplete="email"
@@ -202,7 +210,9 @@ function DryRunCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean 
                 <ConfirmDialog
                   title="Send to real recipients?"
                   description={`Candidates, recruiters and teams will get the agent's emails directly, including anything waiting in the queue. Only do this once the templates and team addresses are checked.${
-                    status.kill_switch ? ' The kill switch is on, so nothing goes out until sending is allowed.' : ''
+                    status.kill_switch
+                      ? ' The kill switch is on, so nothing goes out until sending is allowed.'
+                      : ''
                   }`}
                   confirmLabel="Switch to real recipients"
                   destructive
@@ -242,10 +252,10 @@ function ControlCard({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col rounded-lg border bg-card p-5">
+    <section className="flex flex-col panel p-6">
       <div className="mb-3 flex items-center gap-2 text-muted-foreground">
         {icon}
-        <h2 className="font-semibold text-foreground">{title}</h2>
+        <h2 className="text-lg font-normal tracking-tight text-foreground">{title}</h2>
       </div>
       <p className={cn('flex items-start gap-2 font-medium break-words', alert && 'text-warning')}>
         {alert && <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
@@ -260,7 +270,7 @@ function ControlCard({
 function SystemDetails({ status }: { status: StatusData }) {
   const { mailbox, queue } = status;
   return (
-    <section aria-labelledby="system-details" className="rounded-lg border bg-card p-5">
+    <section aria-labelledby="system-details" className="panel p-6">
       <h2 id="system-details" className="font-semibold">
         Mailbox, queue and integrations
       </h2>
@@ -268,7 +278,11 @@ function SystemDetails({ status }: { status: StatusData }) {
         <Metric
           label="Last mailbox check"
           value={formatRelative(mailbox.last_poll_at)}
-          hint={mailbox.last_poll_at ? formatDateTime(mailbox.last_poll_at) : 'The agent has not checked the mailbox yet'}
+          hint={
+            mailbox.last_poll_at
+              ? formatDateTime(mailbox.last_poll_at)
+              : 'The agent has not checked the mailbox yet'
+          }
         />
         <Metric
           label="Last email received"
@@ -277,10 +291,18 @@ function SystemDetails({ status }: { status: StatusData }) {
         />
         <Metric
           label="Instant notifications"
-          value={mailbox.subscription_expires_at ? `Renew by ${formatDateTime(mailbox.subscription_expires_at)}` : 'Not set up'}
+          value={
+            mailbox.subscription_expires_at
+              ? `Renew by ${formatDateTime(mailbox.subscription_expires_at)}`
+              : 'Not set up'
+          }
           hint="Renewed automatically. The 2 minute mailbox check covers any gap."
         />
-        <Metric label="Incoming work waiting" value={queue.queued} hint="New emails and HR actions queued for the agent" />
+        <Metric
+          label="Incoming work waiting"
+          value={queue.queued}
+          hint="New emails and HR actions queued for the agent"
+        />
         <Metric label="Being worked on" value={queue.processing} hint="Picked up by the agent right now" />
         <Metric
           label="Emails and follow-ups scheduled"

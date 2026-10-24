@@ -15,9 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { SelectField } from '@/components/common/SelectField';
 import { documentLabel, statusLabel } from '@/utils/labels';
 import { formatRelative } from '@/utils/utility';
 import { ChecklistStatus, type AttachmentData, type ChecklistItemData } from '@/types';
@@ -46,7 +46,12 @@ export function ChecklistPanel({ caseId, items, attachments }: ChecklistPanelPro
   const files = new Map(attachments.map((file) => [file.attachment_id, file]));
 
   if (!items.length) {
-    return <EmptyState title="No checklist on this case" description="Checklists come from the template for the hire type and location." />;
+    return (
+      <EmptyState
+        title="No checklist on this case"
+        description="Checklists come from the template for the hire type and location."
+      />
+    );
   }
 
   return (
@@ -69,20 +74,27 @@ export function ChecklistPanel({ caseId, items, attachments }: ChecklistPanelPro
                 <TableCell>
                   <span className="font-medium">{documentLabel(item.document_type)}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {item.is_mandatory ? 'Required' : 'Optional'} · {item.check_mode === 'photo' ? 'Photo check' : 'Text check'}
+                    {item.is_mandatory ? 'Required' : 'Optional'} ·{' '}
+                    {item.check_mode === 'photo' ? 'Photo check' : 'Text check'}
                   </span>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col items-start gap-1">
                     <StatusBadge value={item.status} />
-                    {item.person_check && item.person_check !== 'match' && <StatusBadge value={item.person_check} />}
+                    {item.person_check && item.person_check !== 'match' && (
+                      <StatusBadge value={item.person_check} />
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="max-w-48 truncate text-muted-foreground">
                   {item.attachment_id ? (files.get(item.attachment_id)?.file_name ?? 'Attached') : '—'}
                 </TableCell>
-                <TableCell className="max-w-64 text-sm whitespace-normal text-muted-foreground">{item.notes || '—'}</TableCell>
-                <TableCell className="text-muted-foreground tabular-nums">{formatRelative(item.updated_at)}</TableCell>
+                <TableCell className="max-w-64 text-sm whitespace-normal text-muted-foreground">
+                  {item.notes || '—'}
+                </TableCell>
+                <TableCell className="text-muted-foreground tabular-nums">
+                  {formatRelative(item.updated_at)}
+                </TableCell>
                 {isAdmin && (
                   <TableCell>
                     <Button
@@ -101,7 +113,12 @@ export function ChecklistPanel({ caseId, items, attachments }: ChecklistPanelPro
         </Table>
       </TableShell>
       {editing && (
-        <OverrideDialog caseId={caseId} item={editing} attachments={attachments} onClose={() => setEditing(null)} />
+        <OverrideDialog
+          caseId={caseId}
+          item={editing}
+          attachments={attachments}
+          onClose={() => setEditing(null)}
+        />
       )}
     </>
   );
@@ -135,38 +152,32 @@ function OverrideDialog({ caseId, item, attachments, onClose }: OverrideDialogPr
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{documentLabel(item.document_type)}</DialogTitle>
-          <DialogDescription>Set the status by hand when you checked the document yourself.</DialogDescription>
+          <DialogDescription>
+            Set the status by hand when you checked the document yourself.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <Field id="override-status" label="Status">
-            <NativeSelect
+            <SelectField
               id="override-status"
-              className="w-full"
+              className="w-full sm:w-full"
               value={status}
-              onChange={(event) => setStatus(event.target.value as OverrideStatus)}
-            >
-              {OVERRIDE_STATUSES.map((value) => (
-                <NativeSelectOption key={value} value={value}>
-                  {statusLabel(value).label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              onValueChange={(next) => setStatus(next as OverrideStatus)}
+              options={OVERRIDE_STATUSES.map((value) => ({ value, label: statusLabel(value).label }))}
+            />
           </Field>
           {attachments.length > 0 && (
             <Field id="override-file" label="Linked file" optional>
-              <NativeSelect
+              <SelectField
                 id="override-file"
-                className="w-full"
+                className="w-full sm:w-full"
                 value={attachmentId}
-                onChange={(event) => setAttachmentId(event.target.value)}
-              >
-                <NativeSelectOption value="">No file</NativeSelectOption>
-                {attachments.map((file) => (
-                  <NativeSelectOption key={file.attachment_id} value={file.attachment_id}>
-                    {file.file_name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                onValueChange={setAttachmentId}
+                options={[
+                  { value: '', label: 'No file' },
+                  ...attachments.map((file) => ({ value: file.attachment_id, label: file.file_name })),
+                ]}
+              />
             </Field>
           )}
           <Field id="override-note" label="Note" optional>

@@ -18,12 +18,12 @@ export function ClearanceChips({ clearances }: { clearances: Record<string, stri
             key={team}
             title={`${TEAM_LABELS[team] ?? team}: ${status.replace(/_/g, ' ')}`}
             className={cn(
-              'inline-flex h-5 items-center gap-1 rounded-sm border px-1.5 text-xs font-medium',
+              'inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs font-medium',
               DONE.has(status)
-                ? 'border-success/25 bg-success/10 text-success'
+                ? 'bg-mint/15 text-success'
                 : STUCK.has(status)
-                  ? 'border-destructive/25 bg-destructive/10 text-destructive'
-                  : 'border-border bg-muted text-muted-foreground',
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'bg-muted text-muted-foreground',
             )}
           >
             <Icon className="size-3" aria-hidden="true" />

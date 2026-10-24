@@ -8,8 +8,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    const next = encodeURIComponent(`${location.pathname}${location.search}`);
-    return <Navigate to={`/login?next=${next}`} replace />;
+    const target = `${location.pathname}${location.search}`;
+    return (
+      <Navigate to={target === '/' ? '/welcome' : `/welcome?next=${encodeURIComponent(target)}`} replace />
+    );
   }
   return children;
 }
@@ -17,7 +19,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 function NoAccess({ what }: { what: string }) {
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-xl font-semibold">You don't have access to {what}</h1>
+      <h1 className="text-[1.9rem] leading-tight font-normal tracking-[-0.035em]">
+        You don't have access to {what}
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">Ask an HR admin to give your account access.</p>
     </div>
   );

@@ -13,6 +13,7 @@ import { useUrlState } from '@/hooks/useUrlState';
 import { ACTOR_LABELS, labelFrom } from '@/utils/labels';
 import { formatDateTime, humanize } from '@/utils/utility';
 import { ActorType, type ActorType as Actor, type SortOrder } from '@/types';
+import { ActivityStats } from './ActivityStats';
 import { actionLogQuery } from './Adminapi';
 
 export default function ActionLog() {
@@ -33,6 +34,7 @@ export default function ActionLog() {
         title="Activity log"
         description="Everything the agent, the system and HR users did, with who did it and when. Document content and personal details are never stored here."
       />
+      <ActivityStats actor={params.actor_type} onActor={(actor_type) => set({ actor_type })} />
       <FilterBar>
         <SearchInput label="Action name" value={params.action} onSearch={(action) => set({ action })} />
         <FilterSelect
@@ -63,7 +65,11 @@ export default function ActionLog() {
         <ErrorState error={list.error} onRetry={() => list.refetch()} />
       ) : !list.data.data.length ? (
         <EmptyState
-          title={params.action || params.actor_type || get('date_from') || get('date_to') ? 'No activity matches' : 'No activity yet'}
+          title={
+            params.action || params.actor_type || get('date_from') || get('date_to')
+              ? 'No activity matches'
+              : 'No activity yet'
+          }
           description={
             params.action || params.actor_type || get('date_from') || get('date_to')
               ? 'Change who did it, the action or the dates.'
@@ -96,7 +102,10 @@ export default function ActionLog() {
                     </TableCell>
                     <TableCell>
                       {item.case_id ? (
-                        <Link to={`/cases/${item.case_id}`} className="text-sm hover:text-primary hover:underline">
+                        <Link
+                          to={`/cases/${item.case_id}`}
+                          className="text-sm hover:text-primary hover:underline"
+                        >
                           Open case
                         </Link>
                       ) : (

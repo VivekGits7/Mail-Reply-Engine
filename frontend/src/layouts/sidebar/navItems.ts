@@ -1,18 +1,22 @@
 import {
   Activity,
   BellRing,
+  BriefcaseBusiness,
   CalendarDays,
   ClipboardCheck,
+  DoorOpen,
   FileText,
   Gauge,
+  HeartHandshake,
   LayoutDashboard,
   ListChecks,
-  LogOut,
+  MessageCircleHeart,
   MessageSquareWarning,
   Presentation,
+  Radar,
+  Settings,
   Settings2,
   ShieldAlert,
-  SmilePlus,
   UserPlus,
   Users,
   type LucideIcon,
@@ -28,37 +32,52 @@ export interface NavItem {
 }
 
 export interface NavGroup {
+  id: string;
   label: string;
+  icon: LucideIcon;
   items: NavItem[];
+  count?: NavItem['count'];
 }
+
+export const ADMIN_GROUP_ID = 'admin';
 
 export const NAV_GROUPS: NavGroup[] = [
   {
+    id: 'desk',
     label: 'Desk',
+    icon: BriefcaseBusiness,
+    count: 'approvals',
     items: [
       { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
       { to: '/approvals', label: 'Approvals', icon: ClipboardCheck, count: 'approvals' },
       { to: '/joiners', label: 'Joiners', icon: UserPlus },
-      { to: '/exits', label: 'Exits', icon: LogOut },
+      { to: '/exits', label: 'Exits', icon: DoorOpen },
     ],
   },
   {
+    id: 'programs',
     label: 'Programs',
+    icon: HeartHandshake,
     items: [
       { to: '/reminders', label: 'Reminders', icon: BellRing },
-      { to: '/feedback', label: 'Feedback', icon: SmilePlus },
+      { to: '/feedback', label: 'Feedback', icon: MessageCircleHeart },
       { to: '/complaints', label: 'Complaints', icon: MessageSquareWarning, requires: 'complaints' },
     ],
   },
   {
+    id: 'monitoring',
     label: 'Monitoring',
+    icon: Radar,
+    count: 'failures',
     items: [
       { to: '/admin/activity', label: 'Activity log', icon: Activity },
       { to: '/admin/failures', label: 'Failures', icon: ShieldAlert, count: 'failures' },
     ],
   },
   {
+    id: ADMIN_GROUP_ID,
     label: 'Admin',
+    icon: Settings,
     items: [
       { to: '/admin/controls', label: 'Controls', icon: Gauge },
       { to: '/admin/settings', label: 'Settings', icon: Settings2 },
@@ -70,3 +89,20 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+function matches(item: NavItem, pathname: string) {
+  if (item.end) return pathname === item.to;
+  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+}
+
+export function activeItem(pathname: string): NavItem | undefined {
+  for (const group of NAV_GROUPS) {
+    const item = group.items.find((candidate) => matches(candidate, pathname));
+    if (item) return item;
+  }
+  return undefined;
+}
+
+export function activeGroup(pathname: string): NavGroup {
+  return NAV_GROUPS.find((group) => group.items.some((item) => matches(item, pathname))) ?? NAV_GROUPS[0];
+}

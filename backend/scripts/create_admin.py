@@ -28,7 +28,7 @@ async def create_admin(
     finally:
         await close_db_pool()
 
-
+ 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Create an HR admin for the dashboard")
     parser.add_argument("--name", required=True)

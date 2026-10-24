@@ -91,7 +91,7 @@ function SessionEditor({
       {sessions.map((session, index) => (
         <div
           key={index}
-          className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_auto]"
+          className="grid gap-3 panel-inset p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_auto]"
         >
           <label className="text-xs text-muted-foreground">
             Session title

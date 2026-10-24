@@ -41,7 +41,13 @@ export default function ReminderRule() {
   const isAdmin = useAppSelector(selectIsAdmin);
   const rules = useQuery(ruleListQuery({}));
   const rule = rules.data?.find((item) => item.reminder_rule_id === ruleId);
-  const params = { ...page, search: get('search'), status: get('status') as TaskStatus | undefined, sort_by: (get('sort_by') ?? 'created_at') as RuleTaskSortBy, sort_order: (get('sort_order') ?? 'latest') as SortOrder };
+  const params = {
+    ...page,
+    search: get('search'),
+    status: get('status') as TaskStatus | undefined,
+    sort_by: (get('sort_by') ?? 'created_at') as RuleTaskSortBy,
+    sort_order: (get('sort_order') ?? 'latest') as SortOrder,
+  };
   const tasks = useQuery({ ...ruleTasksQuery(ruleId, params), enabled: Boolean(rule) });
   if (rules.isPending) return <BlockSkeleton />;
   if (rules.isError) return <ErrorState error={rules.error} onRetry={() => rules.refetch()} />;
@@ -60,7 +66,7 @@ export default function ReminderRule() {
     <section>
       <Link
         to="/reminders"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex h-9 items-center gap-1.5 pill px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Reminders
       </Link>
@@ -83,7 +89,7 @@ export default function ReminderRule() {
           )
         }
       />
-      <div className="mb-6 grid gap-3 rounded-lg border p-4 text-sm sm:grid-cols-3">
+      <div className="mb-6 grid gap-3 panel p-5 text-sm sm:grid-cols-3 sm:p-6">
         <div>
           <span className="text-muted-foreground">Recipient column</span>
           <p className="mt-1 font-mono">{rule.recipient_field}</p>
@@ -97,7 +103,7 @@ export default function ReminderRule() {
           <p className="mt-1">{rule.required_columns.join(', ')}</p>
         </div>
       </div>
-      <h2 className="mb-3 text-base font-semibold">Recipients</h2>
+      <h2 className="mb-3 text-xl font-normal tracking-[-0.02em]">Recipients</h2>
       <FilterBar>
         <SearchInput label="Search recipients" value={params.search} onSearch={(search) => set({ search })} />
         <FilterSelect
@@ -106,7 +112,15 @@ export default function ReminderRule() {
           options={Object.values(TaskStatus).map((value) => ({ value, label: value.replaceAll('_', ' ') }))}
           onChange={(status) => set({ status })}
         />
-        <SortSelect options={[{ label: 'Recently created', sort_by: 'created_at', sort_order: 'latest' }, { label: 'Due soonest', sort_by: 'due_at', sort_order: 'a_to_z' }]} sortBy={params.sort_by} sortOrder={params.sort_order} onChange={(sort_by, sort_order) => set({ sort_by, sort_order })} />
+        <SortSelect
+          options={[
+            { label: 'Recently created', sort_by: 'created_at', sort_order: 'latest' },
+            { label: 'Due soonest', sort_by: 'due_at', sort_order: 'a_to_z' },
+          ]}
+          sortBy={params.sort_by}
+          sortOrder={params.sort_order}
+          onChange={(sort_by, sort_order) => set({ sort_by, sort_order })}
+        />
       </FilterBar>
       {tasks.isPending ? (
         <TableSkeleton />
@@ -198,7 +212,7 @@ function ImportList({ ruleId }: { ruleId: string }) {
         </DialogHeader>
         <FilePicker purpose="reminder_list" file={file} onChange={setFile} uploading={upload.isPending} />
         {result && (
-          <div className="rounded-lg border p-3 text-sm">
+          <div className="panel-inset p-4 text-sm">
             <p>
               {result.rows_valid} of {result.rows_total} rows accepted · {result.tasks_created} tasks created
             </p>

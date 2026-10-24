@@ -1,35 +1,37 @@
 import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router';
 import { RequireAdmin, RequireAuth, RequireComplaintsAccess } from '@/components/auth/RequireAuth';
-import Layout from '@/layouts/Layout';
+import { PAGES } from '@/components/pages';
 
-const LoginPage = lazy(() => import('@/components/auth/LoginPage'));
-const Overview = lazy(() => import('@/components/overview/Overview'));
-const Joiners = lazy(() => import('@/components/joiners/Joiners'));
-const Exits = lazy(() => import('@/components/exits/Exits'));
-const CaseDetail = lazy(() => import('@/components/cases/CaseDetail'));
-const Approvals = lazy(() => import('@/components/approvals/Approvals'));
-const ApprovalDetail = lazy(() => import('@/components/approvals/ApprovalDetail'));
-const Reminders = lazy(() => import('@/components/reminders/Reminders'));
-const ReminderRule = lazy(() => import('@/components/reminders/ReminderRule'));
-const Feedback = lazy(() => import('@/components/feedback/Feedback'));
-const Complaints = lazy(() => import('@/components/complaints/Complaints'));
-const Controls = lazy(() => import('@/components/admin/Controls'));
-const Settings = lazy(() => import('@/components/admin/Settings'));
-const Templates = lazy(() => import('@/components/admin/Templates'));
-const TemplateEditor = lazy(() => import('@/components/admin/TemplateEditor'));
-const Checklists = lazy(() => import('@/components/admin/Checklists'));
-const InductionTemplates = lazy(() => import('@/components/admin/InductionTemplates'));
-const Holidays = lazy(() => import('@/components/admin/Holidays'));
-const ActionLog = lazy(() => import('@/components/admin/ActionLog'));
-const Failures = lazy(() => import('@/components/admin/Failures'));
-const Users = lazy(() => import('@/components/admin/Users'));
-const NoMatch = lazy(() => import('@/components/error/NoMatch'));
+const Layout = lazy(PAGES.layout);
+const LoginPage = lazy(PAGES.login);
+const Landing = lazy(PAGES.landing);
+const Overview = lazy(PAGES.overview);
+const Joiners = lazy(PAGES.joiners);
+const Exits = lazy(PAGES.exits);
+const CaseDetail = lazy(PAGES.caseDetail);
+const Approvals = lazy(PAGES.approvals);
+const ApprovalDetail = lazy(PAGES.approvalDetail);
+const Reminders = lazy(PAGES.reminders);
+const ReminderRule = lazy(PAGES.reminderRule);
+const Feedback = lazy(PAGES.feedback);
+const Complaints = lazy(PAGES.complaints);
+const Controls = lazy(PAGES.controls);
+const Settings = lazy(PAGES.settings);
+const Templates = lazy(PAGES.templates);
+const TemplateEditor = lazy(PAGES.templateEditor);
+const Checklists = lazy(PAGES.checklists);
+const InductionTemplates = lazy(PAGES.inductionTemplates);
+const Holidays = lazy(PAGES.holidays);
+const ActionLog = lazy(PAGES.actionLog);
+const Failures = lazy(PAGES.failures);
+const Users = lazy(PAGES.users);
+const NoMatch = lazy(PAGES.noMatch);
 
 function RouteFallback() {
   return (
-    <div className="flex h-[50vh] items-center justify-center" aria-busy="true" aria-label="Loading">
-      <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent motion-reduce:animate-none" />
+    <div className="flex h-[60vh] items-center justify-center" aria-busy="true" aria-label="Loading">
+      <div className="size-8 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary motion-reduce:animate-none" />
     </div>
   );
 }
@@ -39,6 +41,7 @@ export default function Router() {
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="welcome" element={<Landing />} />
         <Route
           element={
             <RequireAuth>

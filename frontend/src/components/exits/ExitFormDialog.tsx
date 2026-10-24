@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { Field } from '@/components/common/Field';
@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DateField } from '@/components/common/DateField';
 import { fieldProps } from '@/utils/fieldProps';
 import { getErrorMessage } from '@/utils/apiError';
 import { applyServerErrors } from '@/utils/formErrors';
@@ -48,6 +49,7 @@ export function ExitFormDialog({ trigger }: { trigger: ReactNode }) {
   const navigate = useNavigate();
   const {
     register,
+    control,
     handleSubmit,
     setError,
     reset,
@@ -55,7 +57,8 @@ export function ExitFormDialog({ trigger }: { trigger: ReactNode }) {
   } = useForm<ExitValues>({ resolver: zodResolver(exitSchema), defaultValues: EMPTY });
 
   const create = useMutation({
-    mutationFn: (values: ExitValues) => exitsApi.create({ ...values, manager_name: values.manager_name || null }),
+    mutationFn: (values: ExitValues) =>
+      exitsApi.create({ ...values, manager_name: values.manager_name || null }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: exitKeys.all });
       setOpen(false);
@@ -80,7 +83,8 @@ export function ExitFormDialog({ trigger }: { trigger: ReactNode }) {
         <DialogHeader>
           <DialogTitle>Start an exit</DialogTitle>
           <DialogDescription>
-            The agent sends one clearance mail to the offboarding group and the manager, then chases each team.
+            The agent sends one clearance mail to the offboarding group and the manager, then chases each
+            team.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -109,10 +113,24 @@ export function ExitFormDialog({ trigger }: { trigger: ReactNode }) {
             />
           </Field>
           <Field id="exit_lwd" label="Last working day" error={errors.last_working_day?.message}>
-            <Input type="date" {...fieldProps('exit_lwd', errors.last_working_day?.message)} {...register('last_working_day')} />
+            <Controller
+              control={control}
+              name="last_working_day"
+              render={({ field }) => (
+                <DateField
+                  {...fieldProps('exit_lwd', errors.last_working_day?.message)}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
           </Field>
           <Field id="exit_manager_name" label="Manager name" optional error={errors.manager_name?.message}>
-            <Input {...fieldProps('exit_manager_name', errors.manager_name?.message)} {...register('manager_name')} />
+            <Input
+              {...fieldProps('exit_manager_name', errors.manager_name?.message)}
+              {...register('manager_name')}
+            />
           </Field>
           <Field id="exit_manager_email" label="Manager email" error={errors.manager_email?.message}>
             <Input

@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocation, useOutlet } from 'react-router';
+import { BlockSkeleton } from '@/components/common/QueryState';
+import { EASE_FLUID } from '@/utils/animations';
 
 function FrozenOutlet() {
   const outlet = useOutlet();
@@ -12,15 +14,17 @@ function FrozenOutlet() {
 export function AnimatedOutlet() {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="wait" initial={false} onExitComplete={() => window.scrollTo({ top: 0 })}>
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+        initial={{ opacity: 0, y: 10, scale: 0.995 }}
+        animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.28, ease: EASE_FLUID } }}
+        exit={{ opacity: 0, y: -6, transition: { duration: 0.12, ease: 'easeIn' } }}
+        className="origin-top"
       >
-        <FrozenOutlet />
+        <Suspense fallback={<BlockSkeleton />}>
+          <FrozenOutlet />
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );

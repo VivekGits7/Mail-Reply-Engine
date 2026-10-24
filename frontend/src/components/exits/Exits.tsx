@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { LogOut } from 'lucide-react';
+import { DoorOpen } from 'lucide-react';
 import { Link } from 'react-router';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
@@ -21,7 +21,9 @@ import { TEAM_LABELS, optionsFrom } from '@/utils/labels';
 import { formatDate, formatRelative } from '@/utils/utility';
 import { ClearanceTeam, ExitStage, type ExitSortBy, type SortOrder } from '@/types';
 import { ClearanceChips } from './ClearanceChips';
+import { Avatar } from '@/components/visual/Avatar';
 import { ExitFormDialog } from './ExitFormDialog';
+import { ExitStats } from './ExitStats';
 import { exitListQuery } from './Exitsapi';
 
 const SORT_OPTIONS: SortOption[] = [
@@ -45,7 +47,9 @@ export default function Exits() {
     sort_order: (get('sort_order') ?? 'latest') as SortOrder,
   };
   const exits = useQuery(exitListQuery({ ...filters, ...page }));
-  const hasFilters = Boolean(search || filters.stage || filters.pending_team || filters.lwd_from || filters.lwd_to);
+  const hasFilters = Boolean(
+    search || filters.stage || filters.pending_team || filters.lwd_from || filters.lwd_to,
+  );
 
   return (
     <section>
@@ -57,13 +61,21 @@ export default function Exits() {
             <ExitFormDialog
               trigger={
                 <Button>
-                  <LogOut aria-hidden="true" />
+                  <DoorOpen aria-hidden="true" />
                   Start exit
                 </Button>
               }
             />
           )
         }
+      />
+
+      <ExitStats
+        stage={filters.stage}
+        lwdFrom={filters.lwd_from}
+        lwdTo={filters.lwd_to}
+        onStage={(value) => set({ stage: value })}
+        onRange={(range) => set({ lwd_from: range?.from, lwd_to: range?.to })}
       />
 
       <FilterBar>
@@ -125,18 +137,32 @@ export default function Exits() {
               <TableBody>
                 {exits.data.data.map((exit) => (
                   <TableRow key={exit.case_id}>
-                    <TableCell className="max-w-64">
-                      <Link
-                        to={`/cases/${exit.case_id}`}
-                        className="block truncate font-medium hover:text-primary hover:underline"
-                      >
-                        {exit.full_name}
-                      </Link>
-                      {exit.employee_code && (
-                        <span className="font-mono text-xs text-muted-foreground">{exit.employee_code}</span>
+                    <TableCell className="max-w-72">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={exit.full_name} size="md" />
+                        <div className="min-w-0">
+                          <Link
+                            to={`/cases/${exit.case_id}`}
+                            className="block truncate font-medium hover:text-primary hover:underline"
+                          >
+                            {exit.full_name}
+                          </Link>
+                          {exit.employee_code && (
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {exit.employee_code}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatDate(exit.last_working_day)}
+                      {exit.last_working_day && (
+                        <span className="block text-xs text-muted-foreground">
+                          {formatRelative(exit.last_working_day)}
+                        </span>
                       )}
                     </TableCell>
-                    <TableCell className="tabular-nums">{formatDate(exit.last_working_day)}</TableCell>
                     <TableCell>
                       <StatusBadge value={exit.stage} />
                     </TableCell>

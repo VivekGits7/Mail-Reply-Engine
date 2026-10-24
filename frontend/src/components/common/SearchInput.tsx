@@ -18,9 +18,9 @@ export function SearchInput({ value, onSearch, label, className }: SearchInputPr
   useEffect(() => () => clearTimeout(timer.current), []);
 
   return (
-    <div className={cn('relative w-full sm:w-64', className)}>
+    <div className={cn('relative w-full sm:w-72', className)}>
       <Search
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden="true"
       />
       <Input
@@ -29,7 +29,7 @@ export function SearchInput({ value, onSearch, label, className }: SearchInputPr
         placeholder={`${label}…`}
         defaultValue={value}
         spellCheck={false}
-        className="pl-8"
+        className="rounded-full pl-10"
         onChange={(event) => {
           const next = event.target.value.trim();
           clearTimeout(timer.current);

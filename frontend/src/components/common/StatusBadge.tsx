@@ -2,11 +2,11 @@ import { cn } from '@/utils/cn';
 import { statusLabel, type Tone } from '@/utils/labels';
 
 const TONES: Record<Tone, string> = {
-  neutral: 'border-border bg-muted text-muted-foreground',
-  info: 'border-info/25 bg-info/10 text-info',
-  success: 'border-success/25 bg-success/10 text-success',
-  warning: 'border-warning/30 bg-warning/10 text-warning',
-  danger: 'border-destructive/25 bg-destructive/10 text-destructive',
+  neutral: 'bg-muted text-muted-foreground',
+  info: 'bg-info/10 text-info',
+  success: 'bg-success/12 text-success',
+  warning: 'bg-warning/14 text-warning',
+  danger: 'bg-destructive/10 text-destructive',
 };
 
 interface StatusBadgeProps {
@@ -21,11 +21,12 @@ export function StatusBadge({ value, label, tone, className }: StatusBadgeProps)
   return (
     <span
       className={cn(
-        'inline-flex h-5 shrink-0 items-center rounded-sm border px-1.5 text-xs font-medium whitespace-nowrap',
+        'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full pr-2.5 pl-2 text-xs font-medium whitespace-nowrap',
         TONES[tone ?? known.tone],
         className,
       )}
     >
+      <span className="size-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
       {label ?? known.label}
     </span>
   );

@@ -25,7 +25,7 @@ export function FilePicker({ purpose, file, onChange, uploading, label = 'File' 
         {label}
       </span>
       {file ? (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+        <div className="flex items-center gap-3 rounded-2xl bg-muted/70 px-4 py-3">
           <FileUp className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{file.name}</p>
@@ -47,10 +47,12 @@ export function FilePicker({ purpose, file, onChange, uploading, label = 'File' 
       ) : (
         <label
           htmlFor={id}
-          className="flex cursor-pointer flex-col items-start gap-1 rounded-lg border border-dashed px-3 py-4 text-sm transition-colors hover:bg-muted/50 has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+          className="flex cursor-pointer flex-col items-start gap-1 rounded-2xl border-2 border-dashed px-4 py-6 text-sm transition-colors hover:bg-muted/50 has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
         >
           <span className="font-medium">Choose a file</span>
-          <span className="text-xs text-muted-foreground">Allowed: {accept.replaceAll('.', '').replaceAll(',', ', ')}</span>
+          <span className="text-xs text-muted-foreground">
+            Allowed: {accept.replaceAll('.', '').replaceAll(',', ', ')}
+          </span>
           <input
             id={id}
             type="file"

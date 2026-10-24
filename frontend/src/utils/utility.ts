@@ -17,10 +17,17 @@ const RELATIVE_STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
 ];
 
 // Date-only strings like 2026-11-03 parse as UTC midnight, so read them as local dates instead.
-function toDate(value: string | Date): Date {
+export function toDate(value: string | Date): Date {
   if (value instanceof Date) return value;
   const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  return dateOnly ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])) : new Date(value);
+  return dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
+}
+
+export function dayKey(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 export function formatDate(value?: string | null): string {

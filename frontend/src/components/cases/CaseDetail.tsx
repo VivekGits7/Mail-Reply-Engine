@@ -14,6 +14,8 @@ import { getErrorStatus } from '@/utils/apiError';
 import { CASE_TYPE_LABELS, flagLabel } from '@/utils/labels';
 import { formatDate, formatRelative, humanize } from '@/utils/utility';
 import type { CaseDetailData, CaseFlag } from '@/types';
+import { Avatar } from '@/components/visual/Avatar';
+import { RadialProgress } from '@/components/visual/RadialProgress';
 import { AppointmentLetterDialog } from './AppointmentLetterDialog';
 import { CaseStatusMenu } from './CaseStatusDialog';
 import { caseDetailQuery, casesApi } from './Casesapi';
@@ -23,6 +25,7 @@ import { PlanInductionDialog } from './PlanInductionDialog';
 import { ReleaseDialog } from './ReleaseDialog';
 import { SessionsPanel } from './SessionsPanel';
 import { SignOffDialog } from './SignOffDialog';
+import { StageStepper } from './StageStepper';
 import { TasksPanel } from './TasksPanel';
 import { TimelinePanel } from './TimelinePanel';
 import { useCaseMutation } from './useCaseMutation';
@@ -35,6 +38,7 @@ const BACK_LINKS: Record<string, { to: string; label: string }> = {
 
 const SIGN_OFF_EARLY_STAGES = new Set(['docs_requested', 'docs_in_progress', 'dropout']);
 const ACTIVE = new Set(['open', 'on_hold']);
+const CLEARED = new Set(['done', 'not_applicable']);
 
 export default function CaseDetail() {
   const { caseId = '' } = useParams();
@@ -44,7 +48,9 @@ export default function CaseDetail() {
   if (detail.isError) {
     return getErrorStatus(detail.error) === 404 ? (
       <div className="flex flex-col items-start gap-3">
-        <h1 className="text-xl font-semibold">This case does not exist</h1>
+        <h1 className="text-[1.9rem] leading-tight font-normal tracking-[-0.035em]">
+          This case does not exist
+        </h1>
         <Button asChild variant="outline">
           <Link to="/">Back to overview</Link>
         </Button>
@@ -61,6 +67,8 @@ function CaseView({ data }: { data: CaseDetailData }) {
   const { get, set } = useUrlState();
   const { case: caseData, person } = data;
   const back = BACK_LINKS[caseData.case_type] ?? { to: '/', label: 'Overview' };
+  const verifiedCount = data.checklist.filter((item) => item.status === 'verified').length;
+  const clearedCount = data.tasks.filter((task) => CLEARED.has(task.status)).length;
 
   const tabs: { value: string; label: string; count?: number; content: ReactNode }[] = [];
   if (data.checklist.length) {
@@ -68,7 +76,9 @@ function CaseView({ data }: { data: CaseDetailData }) {
       value: 'checklist',
       label: 'Checklist',
       count: data.checklist.length,
-      content: <ChecklistPanel caseId={caseData.case_id} items={data.checklist} attachments={data.attachments} />,
+      content: (
+        <ChecklistPanel caseId={caseData.case_id} items={data.checklist} attachments={data.attachments} />
+      ),
     });
   }
   if (data.sessions.length || caseData.case_type === 'induction') {
@@ -86,7 +96,12 @@ function CaseView({ data }: { data: CaseDetailData }) {
       count: data.tasks.length,
       content: <TasksPanel caseId={caseData.case_id} tasks={data.tasks} />,
     },
-    { value: 'files', label: 'Files', count: data.attachments.length, content: <FilesPanel attachments={data.attachments} /> },
+    {
+      value: 'files',
+      label: 'Files',
+      count: data.attachments.length,
+      content: <FilesPanel attachments={data.attachments} />,
+    },
     { value: 'timeline', label: 'Timeline', content: <TimelinePanel entries={data.timeline} /> },
   );
   const tab = tabs.some((item) => item.value === get('tab')) ? get('tab')! : tabs[0].value;
@@ -95,40 +110,94 @@ function CaseView({ data }: { data: CaseDetailData }) {
     <article>
       <Link
         to={back.to}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex h-9 items-center gap-1.5 pill px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         {back.label}
       </Link>
 
-      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm text-muted-foreground">
-            {CASE_TYPE_LABELS[caseData.case_type] ?? humanize(caseData.case_type)} case
-            {caseData.track && ` · ${humanize(caseData.track)} track`}
-          </p>
-          <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-balance">{person.full_name}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <StatusBadge value={caseData.stage} />
-            {caseData.status !== 'open' && <StatusBadge value={caseData.status} />}
-            <CaseFlags caseId={caseData.case_id} flags={caseData.flags} canClear={isAdmin} />
+      <header className="relative mb-6 overflow-hidden panel p-5 sm:p-7">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--primary)_16%,transparent),transparent)]"
+        />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <Avatar name={person.full_name} size="xl" />
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">
+                {CASE_TYPE_LABELS[caseData.case_type] ?? humanize(caseData.case_type)} case
+                {caseData.track && ` · ${humanize(caseData.track)} track`}
+              </p>
+              <h1 className="mt-0.5 text-[1.9rem] leading-tight font-normal tracking-[-0.035em] text-balance sm:text-[2.3rem]">
+                {person.full_name}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <StatusBadge value={caseData.stage} />
+                {caseData.status !== 'open' && <StatusBadge value={caseData.status} />}
+                <CaseFlags caseId={caseData.case_id} flags={caseData.flags} canClear={isAdmin} />
+              </div>
+              {data.next_followup_at && ACTIVE.has(caseData.status) && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Next follow-up {formatRelative(data.next_followup_at)}
+                </p>
+              )}
+            </div>
           </div>
-          {data.next_followup_at && ACTIVE.has(caseData.status) && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Next follow-up {formatRelative(data.next_followup_at)}
-            </p>
-          )}
+          <div className="flex shrink-0 flex-col items-start gap-4 lg:items-end">
+            {data.checklist.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-right text-xs leading-tight text-muted-foreground">
+                  Documents
+                  <span className="block text-sm font-medium text-foreground tabular-nums">
+                    {verifiedCount}/{data.checklist.length} verified
+                  </span>
+                </span>
+                <RadialProgress
+                  value={verifiedCount}
+                  max={data.checklist.length}
+                  label="Documents verified"
+                  tone="mint"
+                  size={52}
+                />
+              </div>
+            )}
+            {caseData.case_type === 'exit' && data.tasks.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-right text-xs leading-tight text-muted-foreground">
+                  Clearances
+                  <span className="block text-sm font-medium text-foreground tabular-nums">
+                    {clearedCount}/{data.tasks.length} teams cleared
+                  </span>
+                </span>
+                <RadialProgress
+                  value={clearedCount}
+                  max={data.tasks.length}
+                  label="Teams cleared"
+                  tone="ember"
+                  size={52}
+                />
+              </div>
+            )}
+            {isAdmin && <CaseActions data={data} />}
+          </div>
         </div>
-        {isAdmin && <CaseActions data={data} />}
+        <StageStepper caseType={caseData.case_type} stage={caseData.stage} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <Tabs value={tab} onValueChange={(value) => set({ tab: value }, { keepPage: true })} className="min-w-0">
+        <Tabs
+          value={tab}
+          onValueChange={(value) => set({ tab: value }, { keepPage: true })}
+          className="min-w-0"
+        >
           <TabsList className="max-w-full overflow-x-auto">
             {tabs.map((item) => (
               <TabsTrigger key={item.value} value={item.value}>
                 {item.label}
-                {item.count != null && <span className="text-xs text-muted-foreground tabular-nums">{item.count}</span>}
+                {item.count != null && (
+                  <span className="text-xs text-muted-foreground tabular-nums">{item.count}</span>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -151,13 +220,13 @@ function CaseFlags({ caseId, flags, canClear }: { caseId: string; flags: string[
   return flags.map((flag) => (
     <span
       key={flag}
-      className="inline-flex h-5 items-center gap-1 rounded-sm border border-destructive/25 bg-destructive/10 pr-0.5 pl-1.5 text-xs font-medium text-destructive"
+      className="inline-flex h-6 items-center gap-1 rounded-full bg-ember/10 pr-1 pl-2.5 text-xs font-medium text-ember"
     >
       {flagLabel(flag)}
       {canClear && (
         <button
           type="button"
-          className="rounded-xs p-0.5 hover:bg-destructive/15 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="rounded-full p-0.5 hover:bg-ember/15 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
           aria-label={`Clear flag ${flagLabel(flag)}`}
           disabled={clear.isPending}
           onClick={() => clear.mutate(flag)}
@@ -174,7 +243,10 @@ function CaseActions({ data }: { data: CaseDetailData }) {
   const active = ACTIVE.has(caseData.status);
   const isOnboarding = caseData.case_type === 'onboarding';
   const hasInduction = data.related_cases.some((related) => related.case_type === 'induction');
-  const canSignOff = active && isOnboarding && (caseData.stage === 'ready_for_signoff' || SIGN_OFF_EARLY_STAGES.has(caseData.stage));
+  const canSignOff =
+    active &&
+    isOnboarding &&
+    (caseData.stage === 'ready_for_signoff' || SIGN_OFF_EARLY_STAGES.has(caseData.stage));
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -256,8 +328,8 @@ function CaseSidebar({ data }: { data: CaseDetailData }) {
   const { person, case: caseData } = data;
   return (
     <aside className="flex flex-col gap-4">
-      <section className="rounded-lg border bg-card p-4">
-        <h2 className="mb-2 text-sm font-semibold">Details</h2>
+      <section className="panel p-5">
+        <h2 className="mb-3 text-base font-normal tracking-tight">Details</h2>
         <dl className="divide-y">
           <Detail label="Employee ID" value={person.employee_code} mono />
           <Detail label="Designation" value={person.designation} />
@@ -275,12 +347,15 @@ function CaseSidebar({ data }: { data: CaseDetailData }) {
         </dl>
       </section>
       {data.approvals.length > 0 && (
-        <section className="rounded-lg border bg-card p-4">
-          <h2 className="mb-2 text-sm font-semibold">Approvals</h2>
+        <section className="panel p-5">
+          <h2 className="mb-3 text-base font-normal tracking-tight">Approvals</h2>
           <ul className="flex flex-col gap-2">
             {data.approvals.map((approval) => (
               <li key={approval.approval_id} className="flex items-center justify-between gap-2 text-sm">
-                <Link to={`/approvals/${approval.approval_id}`} className="hover:text-primary hover:underline">
+                <Link
+                  to={`/approvals/${approval.approval_id}`}
+                  className="hover:text-primary hover:underline"
+                >
                   {approval.approval_type === 'reply' ? 'Reply draft' : 'Induction plan'}
                 </Link>
                 <StatusBadge value={approval.status} />
@@ -290,8 +365,8 @@ function CaseSidebar({ data }: { data: CaseDetailData }) {
         </section>
       )}
       {data.related_cases.length > 0 && (
-        <section className="rounded-lg border bg-card p-4">
-          <h2 className="mb-2 text-sm font-semibold">Related cases</h2>
+        <section className="panel p-5">
+          <h2 className="mb-3 text-base font-normal tracking-tight">Related cases</h2>
           <ul className="flex flex-col gap-2">
             {data.related_cases.map((related) => (
               <li key={related.case_id} className="flex items-center justify-between gap-2 text-sm">

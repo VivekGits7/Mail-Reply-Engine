@@ -16,9 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DateTimeField } from '@/components/common/DateField';
 import { formatDateTime, fromLocalDateTimeInput, toLocalDateTimeInput } from '@/utils/utility';
 import type { InductionSessionData } from '@/types';
 import { casesApi } from './Casesapi';
@@ -57,7 +57,9 @@ export function SessionsPanel({ caseId, sessions }: { caseId: string; sessions: 
               <TableRow key={session.induction_session_id}>
                 <TableCell className="max-w-64 whitespace-normal">
                   <span className="font-medium">{session.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{session.owner_email ?? '—'}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {session.owner_email ?? '—'}
+                  </span>
                 </TableCell>
                 <TableCell className="tabular-nums">{formatDateTime(session.proposed_start)}</TableCell>
                 <TableCell className="tabular-nums">{formatDateTime(session.agreed_start)}</TableCell>
@@ -84,7 +86,15 @@ export function SessionsPanel({ caseId, sessions }: { caseId: string; sessions: 
   );
 }
 
-function BookDialog({ caseId, session, onClose }: { caseId: string; session: InductionSessionData; onClose: () => void }) {
+function BookDialog({
+  caseId,
+  session,
+  onClose,
+}: {
+  caseId: string;
+  session: InductionSessionData;
+  onClose: () => void;
+}) {
   const [start, setStart] = useState(toLocalDateTimeInput(session.agreed_start ?? session.proposed_start));
   const [end, setEnd] = useState(toLocalDateTimeInput(session.agreed_end ?? session.proposed_end));
   const [force, setForce] = useState(session.status === 'conflict');
@@ -105,17 +115,27 @@ function BookDialog({ caseId, session, onClose }: { caseId: string; session: Ind
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Book {session.title}</DialogTitle>
-          <DialogDescription>The invite goes to the session owner and the joiner, or to the test inbox in dry run.</DialogDescription>
+          <DialogDescription>
+            The invite goes to the session owner and the joiner, or to the test inbox in dry run.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field id="book-start" label="Starts">
-            <Input id="book-start" type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} />
+            <DateTimeField id="book-start" label="Starts" value={start} onChange={setStart} />
           </Field>
-          <Field id="book-end" label="Ends" error={start && end && end <= start ? 'End must be after the start' : undefined}>
-            <Input id="book-end" type="datetime-local" value={end} min={start} onChange={(event) => setEnd(event.target.value)} />
+          <Field
+            id="book-end"
+            label="Ends"
+            error={start && end && end <= start ? 'End must be after the start' : undefined}
+          >
+            <DateTimeField id="book-end" label="Ends" value={end} min={start} onChange={setEnd} />
           </Field>
           <div className="flex items-start gap-2 sm:col-span-2">
-            <Checkbox id="book-force" checked={force} onCheckedChange={(checked) => setForce(checked === true)} />
+            <Checkbox
+              id="book-force"
+              checked={force}
+              onCheckedChange={(checked) => setForce(checked === true)}
+            />
             <Label htmlFor="book-force" className="leading-snug font-normal">
               Book even if the owner looks busy
             </Label>

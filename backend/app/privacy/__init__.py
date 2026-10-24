@@ -1,3 +1,5 @@
+import sys
+
 from app.privacy.encryption import (
     EncryptionError,
     FieldCipher,
@@ -8,3 +10,6 @@ from app.privacy.encryption import (
     normalize_for_index,
 )
 from app.privacy.redaction import redact_credentials
+
+# The shared global venv has transformers for another project, and Presidio would load it for nothing.
+sys.modules.setdefault("transformers", None)

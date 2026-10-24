@@ -8,7 +8,7 @@ export function FlagList({ flags }: { flags: string[] }) {
       {flags.map((flag) => (
         <li
           key={flag}
-          className="inline-flex h-5 items-center gap-1 rounded-sm border border-destructive/25 bg-destructive/10 px-1.5 text-xs font-medium text-destructive"
+          className="inline-flex h-6 items-center gap-1 rounded-full bg-ember/10 px-2.5 text-xs font-medium text-ember"
         >
           <TriangleAlert className="size-3" aria-hidden="true" />
           {flagLabel(flag)}
