@@ -24,6 +24,7 @@ export interface NavItem {
   icon: LucideIcon;
   end?: boolean;
   requires?: 'admin' | 'complaints';
+  count?: 'approvals' | 'failures';
 }
 
 export interface NavGroup {
@@ -36,7 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Desk',
     items: [
       { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
-      { to: '/approvals', label: 'Approvals', icon: ClipboardCheck },
+      { to: '/approvals', label: 'Approvals', icon: ClipboardCheck, count: 'approvals' },
       { to: '/joiners', label: 'Joiners', icon: UserPlus },
       { to: '/exits', label: 'Exits', icon: LogOut },
     ],
@@ -50,6 +51,13 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Monitoring',
+    items: [
+      { to: '/admin/activity', label: 'Activity log', icon: Activity },
+      { to: '/admin/failures', label: 'Failures', icon: ShieldAlert, count: 'failures' },
+    ],
+  },
+  {
     label: 'Admin',
     items: [
       { to: '/admin/controls', label: 'Controls', icon: Gauge },
@@ -58,8 +66,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: '/admin/checklists', label: 'Checklists', icon: ListChecks },
       { to: '/admin/induction', label: 'Induction plans', icon: Presentation },
       { to: '/admin/holidays', label: 'Holidays', icon: CalendarDays },
-      { to: '/admin/activity', label: 'Activity log', icon: Activity },
-      { to: '/admin/failures', label: 'Failures', icon: ShieldAlert },
       { to: '/admin/users', label: 'Users', icon: Users, requires: 'admin' },
     ],
   },
