@@ -91,6 +91,10 @@ export type FailureCause =
   | 'microsoft_missing'
   | 'microsoft_refused'
   | 'microsoft_down'
+  | 'smtp_missing'
+  | 'smtp_login'
+  | 'smtp_recipient'
+  | 'send_failed'
   | 'template'
   | 'privacy'
   | 'timeout'
@@ -134,6 +138,38 @@ const FAILURE_RULES: { test: RegExp; reason: FailureReason }[] = [
       cause: 'microsoft_down',
       title: 'Microsoft 365 did not respond',
       fix: 'This is usually temporary. Retry in a few minutes.',
+    },
+  },
+  {
+    test: /smtp is not configured/i,
+    reason: {
+      cause: 'smtp_missing',
+      title: 'The email server is not set up',
+      fix: 'IT needs to add the SMTP settings on the server. Retry once they are added.',
+    },
+  },
+  {
+    test: /sign in to the smtp server/i,
+    reason: {
+      cause: 'smtp_login',
+      title: 'Email server sign-in failed',
+      fix: 'IT needs to check the SMTP username and password. Retry once it is fixed.',
+    },
+  },
+  {
+    test: /refused the recipients/i,
+    reason: {
+      cause: 'smtp_recipient',
+      title: 'The email server refused an address',
+      fix: 'Check the recipient on the case, or the team address in Settings, then retry.',
+    },
+  },
+  {
+    test: /mailsend/i,
+    reason: {
+      cause: 'send_failed',
+      title: 'The email could not be sent',
+      fix: 'Retry. If it fails again, ask IT to check the mail server.',
     },
   },
   {

@@ -39,6 +39,14 @@ const CAUSE_BANNERS: Partial<Record<FailureCause, { title: string; detail: strin
     title: 'Microsoft 365 is not connected yet',
     detail: 'IT needs to add the Microsoft Graph app details on the server. Once they are added, retry the items below.',
   },
+  smtp_login: {
+    title: 'Emails are not going out because the email server sign-in is failing',
+    detail: 'IT needs to check the SMTP username and password on the server. Once it works, retry the items below.',
+  },
+  smtp_missing: {
+    title: 'The email server is not set up yet',
+    detail: 'IT needs to add the SMTP settings on the server. Once they are added, retry the items below.',
+  },
 };
 
 export default function Failures() {
