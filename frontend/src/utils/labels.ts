@@ -18,6 +18,7 @@ const STATUS_LABELS: Record<string, Label> = {
   awaiting_approval: { label: 'Awaiting approval', tone: 'warning' },
   booking: { label: 'Booking', tone: 'info' },
   booked: { label: 'Booked', tone: 'success' },
+  welcome_scheduled: { label: 'Welcome scheduled', tone: 'info' },
   welcome_sent: { label: 'Welcome sent', tone: 'success' },
   open: { label: 'Open', tone: 'info' },
   on_hold: { label: 'On hold', tone: 'warning' },
@@ -55,7 +56,76 @@ const STATUS_LABELS: Record<string, Label> = {
   not_found: { label: 'Name not found', tone: 'warning' },
   active: { label: 'Active', tone: 'success' },
   inactive: { label: 'Inactive', tone: 'neutral' },
+  processed: { label: 'Checked', tone: 'success' },
+  restricted: { label: 'Restricted', tone: 'neutral' },
+  duplicate: { label: 'Duplicate', tone: 'neutral' },
+  skipped: { label: 'Not read', tone: 'neutral' },
 };
+
+const STAGE_HINTS: Record<string, string> = {
+  docs_requested:
+    'The agent emailed the recruiter and candidate for documents. It follows up until everything arrives.',
+  docs_in_progress: 'Some documents arrived. The agent checks each one and keeps chasing the missing ones.',
+  ready_for_signoff: 'Every required document is verified. Review the checklist, then sign off to send the IT request.',
+  it_requested: 'IT was asked for the work email and D365 access. The agent follows up until IT replies.',
+  dropout: 'Documents were still missing after the last reminder, so the agent stopped chasing.',
+  clearance_requested: 'Each team was asked for exit clearance. The agent follows up until each one is done.',
+  clearances_in_progress: 'Some teams have cleared. The agent keeps chasing the rest.',
+  all_cleared: 'Every team has cleared. Confirm release to close the exit.',
+  drafting: 'The agent is drafting the induction plan. It shows up in Approvals when ready.',
+  awaiting_approval: 'The induction plan is waiting in Approvals.',
+  booking: 'Session owners were asked to confirm their times. Replies book the calendar invites.',
+  booked: 'Every session is booked.',
+  welcome_scheduled: 'The welcome email goes out on the joining day.',
+  welcome_sent: 'The welcome email was sent.',
+};
+
+export function stageHint(stage?: string | null): string | undefined {
+  return stage ? STAGE_HINTS[stage] : undefined;
+}
+
+export const EMAIL_CATEGORY_LABELS: Record<string, string> = {
+  doc_submission: 'Documents sent',
+  it_setup_reply: 'IT setup reply',
+  availability_reply: 'Availability reply',
+  clearance_update: 'Clearance update',
+  reminder_response: 'Reminder reply',
+  query: 'Question',
+  complaint: 'Complaint',
+  unrelated: 'Not related',
+};
+
+export const HIRE_CATEGORY_LABELS: Record<string, string> = {
+  campus: 'Campus',
+  lateral: 'Lateral',
+};
+
+export const TRACK_LABELS: Record<string, string> = {
+  campus: 'Campus',
+  mid: 'Mid-level',
+  senior: 'Senior',
+};
+
+export const ACTOR_LABELS: Record<string, string> = {
+  agent: 'Agent',
+  user: 'HR user',
+  system: 'System',
+  candidate: 'Candidate',
+  recruiter: 'Recruiter',
+  manager: 'Manager',
+  external: 'Someone else',
+};
+
+export const SOURCE_LABELS: Record<string, string> = {
+  email: 'Email',
+  exit_interview: 'Exit interview',
+  hr_connect: 'HR Connect',
+};
+
+export function labelFrom(labels: Record<string, string>, value?: string | null): string {
+  if (!value) return '—';
+  return labels[value] ?? value.replace(/[_.-]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+}
 
 export const FLAG_LABELS: Record<string, string> = {
   dropout_risk: 'Dropout risk',

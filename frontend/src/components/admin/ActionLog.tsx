@@ -10,7 +10,8 @@ import { SearchInput } from '@/components/common/SearchInput';
 import { TableShell } from '@/components/common/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useUrlState } from '@/hooks/useUrlState';
-import { formatDate, humanize } from '@/utils/utility';
+import { ACTOR_LABELS, labelFrom } from '@/utils/labels';
+import { formatDateTime, humanize } from '@/utils/utility';
 import { ActorType, type ActorType as Actor, type SortOrder } from '@/types';
 import { actionLogQuery } from './Adminapi';
 
@@ -29,15 +30,15 @@ export default function ActionLog() {
   return (
     <section>
       <PageHeader
-        title="Action log"
-        description="Every action by HR, the agent and the system, with no document content."
+        title="Activity log"
+        description="Everything the agent, the system and HR users did, with who did it and when. Document content and personal details are never stored here."
       />
       <FilterBar>
         <SearchInput label="Action name" value={params.action} onSearch={(action) => set({ action })} />
         <FilterSelect
-          label="Actor"
+          label="Done by"
           value={params.actor_type}
-          options={Object.values(ActorType).map((value) => ({ value, label: humanize(value) }))}
+          options={Object.values(ActorType).map((value) => ({ value, label: ACTOR_LABELS[value] }))}
           onChange={(actor_type) => set({ actor_type })}
         />
         <DateRange
@@ -61,7 +62,14 @@ export default function ActionLog() {
       ) : list.isError ? (
         <ErrorState error={list.error} onRetry={() => list.refetch()} />
       ) : !list.data.data.length ? (
-        <EmptyState title="No actions match" description="Change the actor, action or date range." />
+        <EmptyState
+          title={params.action || params.actor_type || get('date_from') || get('date_to') ? 'No activity matches' : 'No activity yet'}
+          description={
+            params.action || params.actor_type || get('date_from') || get('date_to')
+              ? 'Change who did it, the action or the dates.'
+              : 'Every email, check, approval and settings change is recorded here as it happens.'
+          }
+        />
       ) : (
         <>
           <TableShell>
@@ -70,23 +78,26 @@ export default function ActionLog() {
                 <TableRow>
                   <TableHead>When</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Actor</TableHead>
+                  <TableHead>Done by</TableHead>
                   <TableHead>Case</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {list.data.data.map((item) => (
                   <TableRow key={item.action_log_id}>
-                    <TableCell className="tabular-nums">{formatDate(item.occurred_at)}</TableCell>
+                    <TableCell className="font-mono text-xs whitespace-nowrap tabular-nums">
+                      {formatDateTime(item.occurred_at)}
+                    </TableCell>
                     <TableCell className="font-medium">{humanize(item.action)}</TableCell>
-                    <TableCell>{item.actor_name || humanize(item.actor_type)}</TableCell>
+                    <TableCell>
+                      {item.actor_type === 'user' && item.actor_name
+                        ? item.actor_name
+                        : labelFrom(ACTOR_LABELS, item.actor_type)}
+                    </TableCell>
                     <TableCell>
                       {item.case_id ? (
-                        <Link
-                          to={`/cases/${item.case_id}`}
-                          className="font-mono text-xs hover:text-primary hover:underline"
-                        >
-                          {item.case_id.slice(0, 8)}…
+                        <Link to={`/cases/${item.case_id}`} className="text-sm hover:text-primary hover:underline">
+                          Open case
                         </Link>
                       ) : (
                         '—'

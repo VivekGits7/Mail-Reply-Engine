@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
 import { PageHeader } from '@/components/common/PageHeader';
+import { SearchInput } from '@/components/common/SearchInput';
 import { BlockSkeleton, EmptyState, ErrorState } from '@/components/common/QueryState';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import { useUrlState } from '@/hooks/useUrlState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { getErrorMessage } from '@/utils/apiError';
+import { HIRE_CATEGORY_LABELS, documentLabel, optionsFrom } from '@/utils/labels';
 import { showToast } from '@/utils/toast';
 import { CheckMode, HireCategory, type ChecklistGroup, type ChecklistItemIn } from '@/types';
 import { adminApi, adminKeys, checklistsQuery } from './Adminapi';
@@ -34,32 +36,32 @@ export default function Checklists() {
   return (
     <section>
       <PageHeader
-        title="Document checklists"
-        description="The required documents for each hire type and location. Changes apply to new joiners."
+        title="Checklists"
+        description="The documents the agent asks each joiner for. Each hire type has a default list for every location, and a location can have its own list. Changes apply to new joiners only."
         actions={isAdmin && <NewChecklist />}
       />
       <FilterBar>
         <FilterSelect
           label="Hire type"
           value={category}
-          options={Object.values(HireCategory).map((value) => ({ value, label: value }))}
+          options={optionsFrom(HireCategory, HIRE_CATEGORY_LABELS)}
           onChange={(hire_category) => set({ hire_category })}
         />
-        <label className="text-sm">
-          Location
-          <Input
-            value={location ?? ''}
-            onChange={(event) => set({ location: event.target.value || undefined })}
-            placeholder="Any location…"
-          />
-        </label>
+        <SearchInput label="Location" value={location} onSearch={(next) => set({ location: next })} />
       </FilterBar>
       {list.isPending ? (
         <BlockSkeleton />
       ) : list.isError ? (
         <ErrorState error={list.error} onRetry={() => list.refetch()} />
       ) : !list.data.length ? (
-        <EmptyState title="No checklists configured" />
+        <EmptyState
+          title={category || location ? 'No checklists match these filters' : 'No checklists yet'}
+          description={
+            category || location
+              ? 'Clear a filter to see every checklist.'
+              : 'Default lists are created when the server starts. If this stays empty, ask IT to check the backend.'
+          }
+        />
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
           {list.data.map((group) => (
@@ -128,7 +130,7 @@ function NewChecklist() {
           >
             {Object.values(HireCategory).map((value) => (
               <NativeSelectOption key={value} value={value}>
-                {value}
+                {HIRE_CATEGORY_LABELS[value]}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -141,6 +143,11 @@ function NewChecklist() {
             placeholder="Office location…"
           />
         </label>
+        {groups.data && !base && (
+          <p role="alert" className="text-sm text-destructive">
+            There is no default {HIRE_CATEGORY_LABELS[category].toLowerCase()} checklist to copy yet.
+          </p>
+        )}
         {exists && (
           <p role="alert" className="text-sm text-destructive">
             This location already has a checklist. Edit it from the list.
@@ -184,8 +191,9 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
   return (
     <section className="min-w-0 rounded-lg border p-4">
       <div className="mb-4 flex items-baseline justify-between gap-2">
-        <h2 className="font-semibold capitalize">
-          {group.hire_category} · {group.location === '*' ? 'Any location' : group.location}
+        <h2 className="font-semibold">
+          {HIRE_CATEGORY_LABELS[group.hire_category] ?? group.hire_category} ·{' '}
+          {group.location === '*' ? 'Default for every location' : group.location}
         </h2>
         <span className="text-xs text-muted-foreground">{items.length} documents</span>
       </div>
@@ -203,6 +211,9 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
                 readOnly={!isAdmin}
                 aria-label={`Document ${index + 1}`}
               />
+              {item.document_type.trim() && (
+                <span className="mt-0.5 block">Shown as {documentLabel(item.document_type.trim())}</span>
+              )}
             </label>
             <label className="text-xs text-muted-foreground">
               Check

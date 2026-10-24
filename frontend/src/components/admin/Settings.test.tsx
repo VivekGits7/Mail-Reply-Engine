@@ -62,6 +62,28 @@ describe('Settings', () => {
     expect(updateSettings).toHaveBeenCalledWith({ document_reading_enabled: true });
   });
 
+  it('names empty team addresses and explains each contact', async () => {
+    renderWithProviders(<Settings />, ['/admin/settings#teams-and-integrations']);
+    expect(await screen.findByText(/1 team address is empty: IT team\./)).toBeInTheDocument();
+    expect(screen.getByLabelText('IT team')).toHaveAccessibleDescription(
+      'Gets the email ID and D365 request for joiners, and IT exit clearance',
+    );
+    expect(document.getElementById('teams-and-integrations')).not.toBeNull();
+  });
+
+  it('tells viewers they can only look', async () => {
+    store.dispatch(
+      setCredentials({
+        token: 't',
+        user: { user_id: 'u2', name: 'Viewer', email: 'viewer@tcgdigital.com', role: 'hr_viewer', complaints_access: false, is_active: true },
+      }),
+    );
+    renderWithProviders(<Settings />);
+    expect(await screen.findByLabelText('Max followups')).toBeDisabled();
+    expect(screen.getByText('You can see every setting. Only HR admins can change them.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
   it('saves numbers as numbers', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Settings />);

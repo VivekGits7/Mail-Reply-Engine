@@ -10,6 +10,7 @@ import { useUrlState } from '@/hooks/useUrlState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { getErrorMessage } from '@/utils/apiError';
+import { TRACK_LABELS } from '@/utils/labels';
 import { showToast } from '@/utils/toast';
 import { InductionTrack, type InductionSessionTemplate, type InductionTrack as Track } from '@/types';
 import { adminApi, adminKeys, inductionTemplateQuery } from './Adminapi';
@@ -22,8 +23,8 @@ export default function InductionTemplates() {
   return (
     <section>
       <PageHeader
-        title="Induction templates"
-        description="The sessions proposed for each joiner track. Changes apply to new plans."
+        title="Induction plans"
+        description="The sessions the agent proposes for each joiner track. Every plan still goes to Approvals before anyone is invited. Changes apply to new plans only."
       />
       <Tabs
         value={track}
@@ -31,8 +32,8 @@ export default function InductionTemplates() {
       >
         <TabsList>
           {Object.values(InductionTrack).map((value) => (
-            <TabsTrigger key={value} value={value} className="capitalize">
-              {value}
+            <TabsTrigger key={value} value={value}>
+              {TRACK_LABELS[value]}
             </TabsTrigger>
           ))}
         </TabsList>
