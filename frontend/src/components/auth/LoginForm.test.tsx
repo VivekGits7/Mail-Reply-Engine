@@ -37,6 +37,16 @@ describe('LoginForm', () => {
     expect(login).not.toHaveBeenCalled();
   });
 
+  it('rejects passwords shorter than 8 characters', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<LoginForm />);
+    await user.type(screen.getByLabelText('Work email'), 'tcg@tcgdigital.com');
+    await user.type(screen.getByLabelText('Password'), 'short');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByText('Password must be at least 8 characters')).toBeInTheDocument();
+    expect(login).not.toHaveBeenCalled();
+  });
+
   it('shows the backend message when the password is wrong', async () => {
     const user = userEvent.setup();
     login.mockRejectedValue(apiError(401, 'Incorrect email or password'));
