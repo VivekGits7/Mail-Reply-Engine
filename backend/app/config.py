@@ -1,6 +1,7 @@
 import base64
 import binascii
 from typing import Dict, List, Literal, Optional
+from urllib.parse import quote
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -185,8 +186,11 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        # Encode credentials so a password like pass@2026 does not split the host.
+        user = quote(self.POSTGRES_DB_USER, safe="")
+        password = quote(self.POSTGRES_DB_PASSWORD, safe="")
         return (
-            f"postgresql://{self.POSTGRES_DB_USER}:{self.POSTGRES_DB_PASSWORD}"
+            f"postgresql://{user}:{password}"
             f"@{self.POSTGRES_DB_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB_NAME}"
         )
 

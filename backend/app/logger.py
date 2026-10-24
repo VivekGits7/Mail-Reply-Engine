@@ -32,7 +32,8 @@ def setup_logging(level: Optional[str] = None) -> None:
         root_logger.handlers.clear()
     root_logger.setLevel(numeric_level)
 
-    console_handler = logging.StreamHandler(sys.stdout)
+    # Celery child processes redirect sys.stdout into logging and drop the lines, so write to the real stdout.
+    console_handler = logging.StreamHandler(sys.__stdout__)
     console_handler.setLevel(numeric_level)
     console_handler.setFormatter(logging.Formatter(LOG_FORMAT))
     root_logger.addHandler(console_handler)
