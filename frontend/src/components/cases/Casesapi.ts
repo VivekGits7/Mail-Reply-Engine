@@ -4,6 +4,7 @@ import type {
   AppointmentLetterResponse,
   BookSessionRequest,
   CaseDetailResponse,
+  CaseEmailsResponse,
   CaseUpdateResponse,
   ChecklistOverrideRequest,
   ChecklistOverrideResponse,
@@ -21,6 +22,8 @@ import type {
   UpdateTaskRequest,
 } from '@/types';
 
+const THREAD_LIMIT = 100;
+
 export const casesApi = {
   detail: async (caseId: string) =>
     (await axiosInstance.get<CaseDetailResponse>(`/api/cases/${caseId}`)).data.data,
@@ -31,22 +34,35 @@ export const casesApi = {
   signOff: async (caseId: string, payload: SignOffRequest) =>
     (await axiosInstance.post<SignOffResponse>(`/api/cases/${caseId}/sign-off`, payload)).data,
   overrideChecklist: async (caseId: string, itemId: string, payload: ChecklistOverrideRequest) =>
-    (await axiosInstance.patch<ChecklistOverrideResponse>(`/api/cases/${caseId}/checklist/${itemId}`, payload)).data,
+    (
+      await axiosInstance.patch<ChecklistOverrideResponse>(
+        `/api/cases/${caseId}/checklist/${itemId}`,
+        payload,
+      )
+    ).data,
   releaseConfirm: async (caseId: string, payload: ReleaseConfirmRequest) =>
     (await axiosInstance.post<ReleaseConfirmResponse>(`/api/cases/${caseId}/release-confirm`, payload)).data,
   planInduction: async (caseId: string, payload: PlanInductionRequest) =>
     (await axiosInstance.post<PlanInductionResponse>(`/api/cases/${caseId}/induction`, payload)).data,
   uploadAppointmentLetter: async (caseId: string, file: FileAttachment) =>
-    (await axiosInstance.post<AppointmentLetterResponse>(`/api/cases/${caseId}/appointment-letter`, file)).data,
+    (await axiosInstance.post<AppointmentLetterResponse>(`/api/cases/${caseId}/appointment-letter`, file))
+      .data,
   bookSession: async (sessionId: string, payload: BookSessionRequest) =>
     (await axiosInstance.post<SessionResponse>(`/api/induction-sessions/${sessionId}/book`, payload)).data,
   attachmentUrl: async (attachmentId: string) =>
     (await axiosInstance.get<DownloadUrlResponse>(`/api/attachments/${attachmentId}/download-url`)).data.data,
+  emails: async (caseId: string) =>
+    (
+      await axiosInstance.get<CaseEmailsResponse>(`/api/cases/${caseId}/emails`, {
+        params: { limit: THREAD_LIMIT },
+      })
+    ).data,
 };
 
 export const caseKeys = {
   all: ['cases'] as const,
   detail: (caseId: string) => [...caseKeys.all, 'detail', caseId] as const,
+  emails: (caseId: string) => [...caseKeys.all, 'emails', caseId] as const,
 };
 
 const CASE_REFRESH_MS = 30_000;
@@ -55,5 +71,12 @@ export const caseDetailQuery = (caseId: string) =>
   queryOptions({
     queryKey: caseKeys.detail(caseId),
     queryFn: () => casesApi.detail(caseId),
+    refetchInterval: CASE_REFRESH_MS,
+  });
+
+export const caseEmailsQuery = (caseId: string) =>
+  queryOptions({
+    queryKey: caseKeys.emails(caseId),
+    queryFn: () => casesApi.emails(caseId),
     refetchInterval: CASE_REFRESH_MS,
   });

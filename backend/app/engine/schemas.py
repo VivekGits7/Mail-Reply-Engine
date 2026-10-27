@@ -11,6 +11,7 @@ from app.cases.schemas import (
     ChecklistItemData,
     TaskData,
 )
+from app.common.enums import EmailDirection
 from app.common.schemas import BaseResponse, PaginatedResponse
 from app.mail.schemas import ATTACHMENT_EXAMPLE, AttachmentData
 from app.people.schemas import PERSON_EXAMPLE, PersonData
@@ -445,6 +446,158 @@ class RejectResponse(BaseResponse):
                     "approval_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                     "status": "rejected",
                 },
+            }
+        }
+    )
+
+
+THREAD_MESSAGE_EXAMPLE = {
+    "email_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "direction": "inbound",
+    "from_name": "Rahul Sharma",
+    "from_email": "rahul.sharma@gmail.com",
+    "to": ["hroperations@tcgdigital.com"],
+    "cc": [],
+    "subject": "Re: Documents needed for Rahul Sharma, joining 16 Nov 2026",
+    "body": "Please find my PAN card attached.",
+    "at": "2026-10-26T16:20:00+05:30",
+    "case_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "case_type": "onboarding",
+    "category": "doc_submission",
+    "status": "processed",
+    "is_dry_run": False,
+    "is_automatic": False,
+    "attachments": [
+        {
+            "attachment_id": "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "file_name": "PAN card.pdf",
+            "mime_type": "application/pdf",
+            "size": 48213,
+        }
+    ],
+}
+
+
+class ThreadAttachment(BaseModel):
+    attachment_id: str = Field(
+        ...,
+        description="Attachment UUID, used to get a download link",
+        examples=["1b4e28ba-2fa1-11d2-883f-0016d3cca427"],
+    )
+    file_name: str = Field(
+        ..., description="File name as it arrived", examples=["PAN card.pdf"]
+    )
+    mime_type: str = Field(..., description="File type", examples=["application/pdf"])
+    size: int = Field(..., description="Size in bytes", examples=[48213])
+
+
+class ThreadMessage(BaseModel):
+    email_id: str = Field(
+        ..., description="Email UUID", examples=["7c9e6679-7425-40de-944b-e07fc1f90ae7"]
+    )
+    direction: EmailDirection = Field(
+        ..., description="inbound or outbound", examples=["inbound"]
+    )
+    from_name: Optional[str] = Field(
+        default=None,
+        description="Sender name, empty for the agent",
+        examples=["Rahul Sharma"],
+    )
+    from_email: Optional[str] = Field(
+        default=None, description="Sender email", examples=["rahul.sharma@gmail.com"]
+    )
+    to: List[str] = Field(
+        ...,
+        description="Recipients it was meant for",
+        examples=[["hroperations@tcgdigital.com"]],
+    )
+    cc: List[str] = Field(..., description="Copied recipients", examples=[[]])
+    subject: Optional[str] = Field(
+        default=None,
+        description="Subject line",
+        examples=["Re: Documents needed for Rahul Sharma, joining 16 Nov 2026"],
+    )
+    body: Optional[str] = Field(
+        default=None,
+        description="Email text, for a reply only the new part",
+        examples=["Please find my PAN card attached."],
+    )
+    at: str = Field(
+        ...,
+        description="ISO 8601 time it was sent or received",
+        examples=["2026-10-26T16:20:00+05:30"],
+    )
+    case_id: Optional[str] = Field(
+        default=None,
+        description="Case the email belongs to",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+    )
+    case_type: Optional[str] = Field(
+        default=None,
+        description="onboarding, induction, exit or feedback",
+        examples=["onboarding"],
+    )
+    category: Optional[str] = Field(
+        default=None,
+        description="What the agent read an incoming email as",
+        examples=["doc_submission"],
+    )
+    status: str = Field(
+        ...,
+        description="sent, failed, processed, unmatched, filtered or received",
+        examples=["processed"],
+    )
+    is_dry_run: bool = Field(
+        ...,
+        description="Went to the test inbox instead of the recipients",
+        examples=[False],
+    )
+    is_automatic: bool = Field(
+        ..., description="Sent by the agent from a template", examples=[False]
+    )
+    attachments: List[ThreadAttachment] = Field(..., description="Files on the email")
+
+
+class EmailThread(BaseModel):
+    thread_id: str = Field(
+        ...,
+        description="Mail conversation id, or the email id for a single message",
+        examples=["AAQkAGI2TG93AAA="],
+    )
+    subject: Optional[str] = Field(
+        default=None,
+        description="Subject of the first message",
+        examples=["Documents needed for Rahul Sharma, joining 16 Nov 2026"],
+    )
+    message_count: int = Field(..., description="Messages in the thread", examples=[2])
+    last_at: str = Field(
+        ...,
+        description="ISO 8601 time of the newest message",
+        examples=["2026-10-26T16:20:00+05:30"],
+    )
+    messages: List[ThreadMessage] = Field(..., description="Messages, oldest first")
+
+
+class CaseEmailsResponse(PaginatedResponse):
+    data: List[EmailThread] = Field(..., description="Email threads with this person")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "message": "Found 1 email thread",
+                "data": [
+                    {
+                        "thread_id": "AAQkAGI2TG93AAA=",
+                        "subject": "Documents needed for Rahul Sharma, joining 16 Nov 2026",
+                        "message_count": 1,
+                        "last_at": "2026-10-26T16:20:00+05:30",
+                        "messages": [THREAD_MESSAGE_EXAMPLE],
+                    }
+                ],
+                "total": 1,
+                "limit": 20,
+                "offset": 0,
             }
         }
     )

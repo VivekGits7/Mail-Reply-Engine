@@ -1015,7 +1015,7 @@ async def _send_group_mail(case: Case) -> None:
 
 async def handle_it_reply(email: Email, text: str, case: Case) -> None:
     task = await Task.for_case_type(case.case_id, TaskType.IT_SETUP.value)
-    if not task or task.is_closed:
+    if not task or task.is_final:
         await log_action(
             "it_reply_without_open_task",
             case_id=case.case_id,

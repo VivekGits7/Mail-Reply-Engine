@@ -18,7 +18,8 @@ from app.cases import (
     checklist_data,
     task_data,
 )
-from app.common.enums import SortOrder
+from app.common.enums import EmailDirection, SortOrder
+from app.common.listing import contains, paginate, sort_in_app
 from app.common.schemas import (
     COMMON_ERROR_RESPONSES,
     BadRequestResponse,
@@ -38,11 +39,15 @@ from app.engine.schemas import (
     ApproveResponse,
     CaseDetailData,
     CaseDetailResponse,
+    CaseEmailsResponse,
+    EmailThread,
     RejectData,
     RejectRequest,
     RejectResponse,
     RelatedCase,
     SourceEmail,
+    ThreadAttachment,
+    ThreadMessage,
     TimelineEntry,
     UpdateApprovalRequest,
 )
@@ -208,6 +213,146 @@ async def get_case(
         raise
     except Exception as e:
         logger.error(f"Get case error: {type(e).__name__}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+def _thread_message(
+    email: Email,
+    cases: Dict[uuid.UUID, Case],
+    files: Dict[uuid.UUID, List[ThreadAttachment]],
+) -> ThreadMessage:
+    case = cases.get(email.case_id) if email.case_id else None
+    return ThreadMessage(
+        email_id=str(email.email_id),
+        direction=email.direction,
+        from_name=email.from_name,
+        from_email=email.from_email,
+        to=email.to,
+        cc=email.cc,
+        subject=email.subject,
+        body=email.body_text,
+        at=_iso(email.received_at or email.sent_at or email.created_at),
+        case_id=str(email.case_id) if email.case_id else None,
+        case_type=case.case_type.value if case else None,
+        category=email.category,
+        status=email.processing_status,
+        is_dry_run=email.is_dry_run,
+        is_automatic=email.is_automatic,
+        attachments=files.get(email.email_id, []),
+    )
+
+
+@case_view_router.get(
+    "/{case_id}/emails",
+    response_model=CaseEmailsResponse,
+    summary="Email threads with this person",
+    responses={
+        **COMMON_ERROR_RESPONSES,
+        200: {
+            "model": CaseEmailsResponse,
+            "description": "Email threads, like a mail client",
+        },
+        400: {"model": BadRequestResponse, "description": "Malformed case UUID"},
+        404: {"model": NotFoundResponse, "description": "Case not found"},
+    },
+)
+@limiter.limit("60/minute")
+async def case_emails(
+    request: Request,
+    case_id: str,
+    direction: Optional[EmailDirection] = Query(
+        default=None, description="Only inbound or only outbound mail"
+    ),
+    search: Optional[str] = Query(
+        default=None,
+        max_length=100,
+        description="Partial match on subject, text or sender",
+    ),
+    sort_order: SortOrder = Query(default=SortOrder.LATEST, description="Thread order"),
+    limit: int = Query(default=20, ge=1, le=100, description="Threads per page"),
+    offset: int = Query(default=0, ge=0, description="Threads to skip"),
+    current_user: User = Depends(get_current_user),
+) -> CaseEmailsResponse:
+    """
+    Every email sent to or received from this person, grouped into threads like a mail client.
+
+    - **case_id**: any case of the person, passed in the path, threads cover all their cases
+    - **direction**: optional, inbound or outbound
+    - **search**: optional, partial match on subject, text or sender
+    - **sort_order**: optional, latest or oldest by the newest message, a_to_z or z_to_a by subject, defaults to latest
+    - **limit**: threads per page, 1 to 100, defaults to 20
+    - **offset**: threads to skip, defaults to 0
+    - complaints never show up here
+    """
+    try:
+        validate_uuid((case_id, "case_id"))
+        case = await Case.find_by_id(uuid.UUID(case_id))
+        if not case:
+            raise NotFoundException("Case not found")
+        cases = {c.case_id: c for c in await Case.for_person(case.person_id)}
+        emails = [
+            email
+            for email in await Email.for_cases(list(cases))
+            if (direction is None or email.direction == direction.value)
+            and (
+                not search
+                or any(
+                    contains(value, search)
+                    for value in (
+                        email.subject,
+                        email.body_text,
+                        email.from_email,
+                        email.from_name,
+                    )
+                )
+            )
+        ]
+        files: Dict[uuid.UUID, List[ThreadAttachment]] = {}
+        for attachment in await Attachment.for_emails([e.email_id for e in emails]):
+            files.setdefault(attachment.email_id, []).append(
+                ThreadAttachment(
+                    attachment_id=str(attachment.attachment_id),
+                    file_name=attachment.file_name,
+                    mime_type=attachment.mime_type,
+                    size=attachment.size_bytes,
+                )
+            )
+        grouped: Dict[str, List[Email]] = {}
+        for email in emails:
+            grouped.setdefault(email.conversation_id or str(email.email_id), []).append(
+                email
+            )
+        threads = sort_in_app(
+            list(grouped.items()),
+            lambda item: item[1][0].subject,
+            lambda item: (
+                item[1][-1].received_at or item[1][-1].sent_at or item[1][-1].created_at
+            ),
+            sort_order,
+        )
+        page, total = paginate(threads, limit, offset)
+        data = [
+            EmailThread(
+                thread_id=thread_id,
+                subject=messages[0].subject,
+                message_count=len(messages),
+                last_at=_thread_message(messages[-1], cases, files).at,
+                messages=[_thread_message(m, cases, files) for m in messages],
+            )
+            for thread_id, messages in page
+        ]
+        return CaseEmailsResponse(
+            success=True,
+            message=f"Found {total} email thread{'' if total == 1 else 's'}",
+            data=data,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"Case emails error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

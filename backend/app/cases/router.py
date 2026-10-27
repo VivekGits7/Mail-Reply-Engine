@@ -165,7 +165,7 @@ async def update_task(
             raise NotFoundException("Task not found")
         if data.status is None and not data.sub_items and not data.note:
             raise BadRequestException("Send a status, sub items or a note")
-        if task.is_closed and data.status not in OPEN_TASK_STATUSES:
+        if task.is_final and data.status not in OPEN_TASK_STATUSES:
             raise ConflictException("This task is already closed")
         merged = {**task.sub_items, **data.sub_items} if data.sub_items else None
         await task.update(

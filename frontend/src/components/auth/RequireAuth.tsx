@@ -29,7 +29,7 @@ function NoAccess({ what }: { what: string }) {
 
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const isAdmin = useAppSelector(selectIsAdmin);
-  return isAdmin ? children : <NoAccess what="user management" />;
+  return isAdmin ? children : <NoAccess what="admin management" />;
 }
 
 export function RequireComplaintsAccess({ children }: { children: ReactNode }) {

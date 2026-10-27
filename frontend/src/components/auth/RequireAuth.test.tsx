@@ -52,7 +52,7 @@ describe('RequireAuth', () => {
   it('blocks viewers from admin only screens', () => {
     store.dispatch(setCredentials({ token: 't', user: viewer }));
     renderAt('/admin/users');
-    expect(screen.getByText("You don't have access to user management")).toBeInTheDocument();
+    expect(screen.getByText("You don't have access to admin management")).toBeInTheDocument();
     expect(screen.queryByText('users screen')).not.toBeInTheDocument();
   });
 });

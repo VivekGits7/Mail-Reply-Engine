@@ -426,6 +426,14 @@ class Email:
         return [cls.from_row(row) for row in rows]
 
     @classmethod
+    async def for_cases(cls, case_ids: List[uuid.UUID]) -> List["Email"]:
+        rows = await execute_query(
+            "SELECT * FROM emails WHERE case_id = ANY($1::uuid[]) AND is_restricted = FALSE ORDER BY COALESCE(received_at, sent_at, created_at), email_id",
+            case_ids,
+        )
+        return [cls.from_row(row) for row in rows]
+
+    @classmethod
     async def find_by_approval(cls, approval_id: uuid.UUID) -> Optional["Email"]:
         row = await execute_query_one(
             "SELECT * FROM emails WHERE approval_id = $1 ORDER BY created_at DESC LIMIT 1",
@@ -534,6 +542,14 @@ class Attachment:
             "SELECT * FROM attachments WHERE case_id = $1 AND ($2::text[] IS NULL OR kind = ANY($2)) ORDER BY created_at, attachment_id",
             case_id,
             kinds,
+        )
+        return [cls.from_row(row) for row in rows]
+
+    @classmethod
+    async def for_emails(cls, email_ids: List[uuid.UUID]) -> List["Attachment"]:
+        rows = await execute_query(
+            "SELECT * FROM attachments WHERE email_id = ANY($1::uuid[]) AND parent_attachment_id IS NULL ORDER BY created_at, attachment_id",
+            email_ids,
         )
         return [cls.from_row(row) for row in rows]
 

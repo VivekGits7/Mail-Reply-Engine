@@ -398,7 +398,7 @@ async def handle_clearance(email: Email, text: str, case: Case) -> None:
             entity_id=email.email_id,
         )
         return
-    if task.is_closed:
+    if task.is_final:
         return
     sub_items = dict(task.sub_items)
     for entry in result.items:

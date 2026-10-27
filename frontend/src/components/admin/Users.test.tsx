@@ -8,29 +8,38 @@ import Users from './Users';
 const createUser = vi.hoisted(() => vi.fn());
 vi.mock('./Usersapi', () => ({
   userKeys: { all: ['users'] },
-  userListQuery: () => queryOptions({ queryKey: ['users', 'list'], queryFn: async () => ({ total: 0, limit: 50, offset: 0, data: [] }) }),
+  userListQuery: () =>
+    queryOptions({
+      queryKey: ['users', 'list'],
+      queryFn: async () => ({ total: 0, limit: 50, offset: 0, data: [] }),
+    }),
   usersApi: { create: createUser, update: vi.fn() },
 }));
 vi.mock('@/utils/toast', () => ({ showToast: { success: vi.fn(), error: vi.fn() } }));
 
-describe('Users', () => {
+describe('Admins', () => {
   beforeEach(() => createUser.mockReset());
 
-  it('validates a new HR user before creating the account', async () => {
+  it('validates a new admin before creating the account', async () => {
     const user = userEvent.setup();
     createUser.mockResolvedValue({ data: {} });
     renderWithProviders(<Users />);
-    await user.click(screen.getByRole('button', { name: 'Add user' }));
-    await user.click(screen.getByRole('button', { name: 'Save user' }));
+    await user.click(screen.getByRole('button', { name: 'Add admin' }));
+    await user.click(screen.getByRole('button', { name: 'Save admin' }));
     expect(await screen.findByText('Enter at least two characters')).toBeInTheDocument();
     expect(createUser).not.toHaveBeenCalled();
 
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'TCG User');
     await user.type(screen.getByRole('textbox', { name: 'Email' }), 'tcg@tcgdigital.com');
     await user.type(screen.getByLabelText('Password'), 'StrongPass123');
-    await user.click(screen.getByRole('button', { name: 'Save user' }));
-    expect(createUser).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'TCG User', email: 'tcg@tcgdigital.com', role: 'hr_viewer', complaints_access: false,
-    }));
+    await user.click(screen.getByRole('button', { name: 'Save admin' }));
+    expect(createUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'TCG User',
+        email: 'tcg@tcgdigital.com',
+        role: 'hr_viewer',
+        complaints_access: false,
+      }),
+    );
   });
 });

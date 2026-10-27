@@ -4,6 +4,7 @@ from app.runtime import (
     RuntimeSettings,
     add_working_days,
     next_send_time,
+    previous_working_day,
     working_days_from,
 )
 from app.runtime.clock import local_tz
@@ -39,3 +40,12 @@ def test_working_day_helpers_skip_weekends_and_holidays():
     assert working_days_from(
         date(2026, 10, 23), 3, RS.sending_days, {date(2026, 10, 26)}
     ) == [date(2026, 10, 23), date(2026, 10, 27), date(2026, 10, 28)]
+
+
+def test_day_before_a_monday_joiner_is_the_friday():
+    assert previous_working_day(date(2026, 11, 16), RS.sending_days, set()) == date(
+        2026, 11, 13
+    )
+    assert previous_working_day(
+        date(2026, 11, 16), RS.sending_days, {date(2026, 11, 13)}
+    ) == date(2026, 11, 12)

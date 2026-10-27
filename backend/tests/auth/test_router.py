@@ -46,7 +46,7 @@ async def test_missing_token_returns_401(client):
     assert (await client.get("/api/joiners")).status_code == 401
 
 
-async def test_admin_manages_users_and_viewers_cannot(
+async def test_hr_admin_manages_admins_and_viewers_cannot(
     client, admin_headers, viewer_headers
 ):
     created = await client.post(

@@ -52,7 +52,7 @@ function UserStats({ role, onRole }: { role?: string; onRole: (role: string | un
   const inactive = useQuery(userListQuery({ is_active: false, limit: 1, offset: 0 }));
   return (
     <Breakdown
-      title="Users by role"
+      title="Admins by role"
       totalLabel="People with access"
       loading={admins.isPending || viewers.isPending}
       segments={[
@@ -97,13 +97,13 @@ export default function Users() {
   return (
     <section>
       <PageHeader
-        title="Users"
+        title="Admins"
         description="Who can sign in to this dashboard. Viewers can see cases and settings, admins can also change them, and complaints access is granted to each person separately."
         actions={
           <UserForm
             trigger={
               <Button>
-                <Plus className="size-4" /> Add user
+                <Plus className="size-4" /> Add admin
               </Button>
             }
           />
@@ -111,7 +111,7 @@ export default function Users() {
       />
       <UserStats role={params.role} onRole={(role) => set({ role })} />
       <FilterBar>
-        <SearchInput label="Search users" value={params.search} onSearch={(search) => set({ search })} />
+        <SearchInput label="Search admins" value={params.search} onSearch={(search) => set({ search })} />
         <FilterSelect
           label="Role"
           value={params.role}
@@ -146,14 +146,14 @@ export default function Users() {
       ) : users.isError ? (
         <ErrorState error={users.error} onRetry={() => users.refetch()} />
       ) : !users.data.data.length ? (
-        <EmptyState title="No users match" description="Try another search or role filter." />
+        <EmptyState title="No admins match" description="Try another search or role filter." />
       ) : (
         <>
           <TableShell>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead>Admin</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Complaints</TableHead>
                   <TableHead>State</TableHead>
@@ -258,7 +258,7 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
           } satisfies CreateUserRequest),
     onSuccess: () => {
       cache.invalidateQueries({ queryKey: userKeys.all });
-      showToast.success(user ? 'User updated' : 'User created');
+      showToast.success(user ? 'Admin updated' : 'Admin created');
       setOpen(false);
     },
     onError: (error) => {
@@ -276,7 +276,7 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{user ? 'Edit HR user' : 'Add HR user'}</DialogTitle>
+          <DialogTitle>{user ? 'Edit admin' : 'Add admin'}</DialogTitle>
           <DialogDescription>
             {user ? 'Change role, access or password.' : 'Create a dashboard login for an HR colleague.'}
           </DialogDescription>
@@ -347,7 +347,7 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
         </form>
         <DialogFooter>
           <Button form="user-form" type="submit" disabled={save.isPending}>
-            {save.isPending ? 'Saving…' : 'Save user'}
+            {save.isPending ? 'Saving…' : 'Save admin'}
           </Button>
         </DialogFooter>
       </DialogContent>

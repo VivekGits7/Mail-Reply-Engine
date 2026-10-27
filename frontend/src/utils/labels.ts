@@ -66,7 +66,8 @@ const STAGE_HINTS: Record<string, string> = {
   docs_requested:
     'The agent emailed the recruiter and candidate for documents. It follows up until everything arrives.',
   docs_in_progress: 'Some documents arrived. The agent checks each one and keeps chasing the missing ones.',
-  ready_for_signoff: 'Every required document is verified. Review the checklist, then sign off to send the IT request.',
+  ready_for_signoff:
+    'Every required document is verified. Review the checklist, then sign off to send the IT request.',
   it_requested: 'IT was asked for the work email and D365 access. The agent follows up until IT replies.',
   dropout: 'Documents were still missing after the last reminder, so the agent stopped chasing.',
   clearance_requested: 'Each team was asked for exit clearance. The agent follows up until each one is done.',
@@ -108,7 +109,7 @@ export const TRACK_LABELS: Record<string, string> = {
 
 export const ACTOR_LABELS: Record<string, string> = {
   agent: 'Agent',
-  user: 'HR user',
+  user: 'Admin',
   system: 'System',
   candidate: 'Candidate',
   recruiter: 'Recruiter',
@@ -173,7 +174,9 @@ export const DOCUMENT_LABELS: Record<string, string> = {
 };
 
 export function documentLabel(documentType: string): string {
-  return DOCUMENT_LABELS[documentType] ?? documentType.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+  return (
+    DOCUMENT_LABELS[documentType] ?? documentType.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
+  );
 }
 
 export const DATA_SOURCE_LABELS: Record<string, string> = {
@@ -191,13 +194,21 @@ export const CASE_TYPE_LABELS: Record<string, string> = {
 
 export function statusLabel(value?: string | null): Label {
   if (!value) return { label: '—', tone: 'neutral' };
-  return STATUS_LABELS[value] ?? { label: value.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()), tone: 'neutral' };
+  return (
+    STATUS_LABELS[value] ?? {
+      label: value.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+      tone: 'neutral',
+    }
+  );
 }
 
 export function flagLabel(flag: string): string {
   return FLAG_LABELS[flag] ?? flag.replace(/_/g, ' ');
 }
 
-export function optionsFrom<T extends Record<string, string>>(values: T, labels: Record<string, string> = {}) {
+export function optionsFrom<T extends Record<string, string>>(
+  values: T,
+  labels: Record<string, string> = {},
+) {
   return Object.values(values).map((value) => ({ value, label: labels[value] ?? statusLabel(value).label }));
 }

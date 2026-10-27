@@ -1,30 +1,9 @@
-import { ArrowUpRight, FlaskConical, Inbox, MailWarning, OctagonPause, Send, Timer } from 'lucide-react';
+import { ArrowUpRight, Inbox, Timer } from 'lucide-react';
 import { Link } from 'react-router';
 import { cn } from '@/utils/cn';
-import { mailboxSummary, sendingSummary, type SendingMode } from '@/utils/systemState';
+import { mailboxSummary, sendingSummary } from '@/utils/systemState';
 import type { StatusData } from '@/types';
-
-const MODE_ICONS: Record<SendingMode, typeof Send> = {
-  stopped: OctagonPause,
-  held: MailWarning,
-  test: FlaskConical,
-  live: Send,
-};
-
-const MODE_LABELS: Record<SendingMode, string> = {
-  stopped: 'Stopped',
-  held: 'On hold',
-  test: 'Dry run',
-  live: 'Live',
-};
-
-const TONE_SQUARE = {
-  neutral: 'bg-muted text-muted-foreground',
-  info: 'bg-azure/12 text-azure',
-  success: 'bg-mint/15 text-success',
-  warning: 'bg-sun/30 text-sun-foreground dark:text-sun',
-  danger: 'bg-ember/12 text-ember',
-} as const;
+import { SENDING_MODE_ICONS, SENDING_MODE_LABELS, TONE_SQUARE } from './sendingModes';
 
 const TONE_DOT = {
   neutral: 'bg-muted-foreground',
@@ -44,7 +23,7 @@ interface SendingStatusProps {
 export function SendingStatus({ status, failedCount, showControlsLink, className }: SendingStatusProps) {
   const sending = sendingSummary(status);
   const mailbox = mailboxSummary(status.mailbox.subscription);
-  const Icon = MODE_ICONS[sending.mode];
+  const Icon = SENDING_MODE_ICONS[sending.mode];
 
   return (
     <section
@@ -69,7 +48,7 @@ export function SendingStatus({ status, failedCount, showControlsLink, className
                 sending.mode === 'live' && 'animate-pulse',
               )}
             />
-            {MODE_LABELS[sending.mode]}
+            {SENDING_MODE_LABELS[sending.mode]}
           </span>
           <h2
             id="sending-status-title"

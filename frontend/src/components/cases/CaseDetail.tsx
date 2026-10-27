@@ -18,8 +18,9 @@ import { Avatar } from '@/components/visual/Avatar';
 import { RadialProgress } from '@/components/visual/RadialProgress';
 import { AppointmentLetterDialog } from './AppointmentLetterDialog';
 import { CaseStatusMenu } from './CaseStatusDialog';
-import { caseDetailQuery, casesApi } from './Casesapi';
+import { caseDetailQuery, caseEmailsQuery, casesApi } from './Casesapi';
 import { ChecklistPanel } from './ChecklistPanel';
+import { EmailsPanel } from './EmailsPanel';
 import { FilesPanel } from './FilesPanel';
 import { PlanInductionDialog } from './PlanInductionDialog';
 import { ReleaseDialog } from './ReleaseDialog';
@@ -66,6 +67,7 @@ function CaseView({ data }: { data: CaseDetailData }) {
   const isAdmin = useAppSelector(selectIsAdmin);
   const { get, set } = useUrlState();
   const { case: caseData, person } = data;
+  const emails = useQuery(caseEmailsQuery(caseData.case_id));
   const back = BACK_LINKS[caseData.case_type] ?? { to: '/', label: 'Overview' };
   const verifiedCount = data.checklist.filter((item) => item.status === 'verified').length;
   const clearedCount = data.tasks.filter((task) => CLEARED.has(task.status)).length;
@@ -101,6 +103,12 @@ function CaseView({ data }: { data: CaseDetailData }) {
       label: 'Files',
       count: data.attachments.length,
       content: <FilesPanel attachments={data.attachments} />,
+    },
+    {
+      value: 'emails',
+      label: 'Emails',
+      count: emails.data?.total,
+      content: <EmailsPanel query={emails} />,
     },
     { value: 'timeline', label: 'Timeline', content: <TimelinePanel entries={data.timeline} /> },
   );

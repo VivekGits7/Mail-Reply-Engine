@@ -12,21 +12,19 @@ import {
   Mail,
   MessageCircleHeart,
   MessageSquareWarning,
-  Moon,
   OctagonPause,
   ScanSearch,
   ScrollText,
-  Sun,
   UserPlus,
   Workflow,
   type LucideIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion, useScroll } from 'motion/react';
-import { useTheme } from 'next-themes';
 import { Link, useSearchParams } from 'react-router';
 import { selectIsAuthenticated } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { PageTitle } from '@/components/common/PageHeader';
+import { ThemeMenu } from '@/components/common/ThemeMenu';
 import { Orb } from '@/components/visual/Orb';
 import { TONE_STYLES, type VisualTone } from '@/components/visual/tones';
 import { Button } from '@/components/ui/button';
@@ -190,7 +188,7 @@ const SAFETY: { icon: LucideIcon; title: string; text: string; tone: VisualTone 
   {
     icon: ScrollText,
     title: 'Full audit log',
-    text: 'Every action by the agent, the system or an HR user is recorded with who did it and when.',
+    text: 'Every action by the agent, the system or an admin is recorded with who did it and when.',
     tone: 'mint',
   },
 ];
@@ -503,8 +501,6 @@ function Closing({ cta, signedIn }: { cta: { to: string; label: string }; signed
 export default function Landing() {
   const signedIn = useAppSelector(selectIsAuthenticated);
   const reduced = useReducedMotion();
-  const { resolvedTheme, setTheme } = useTheme();
-  const dark = resolvedTheme === 'dark';
   const [params] = useSearchParams();
   const next = params.get('next');
   const signIn = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
@@ -556,18 +552,10 @@ export default function Landing() {
             ))}
           </div>
           <div className="ml-auto flex items-center gap-2 md:ml-0">
-            <button
-              type="button"
-              onClick={() => setTheme(dark ? 'light' : 'dark')}
-              aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+            <ThemeMenu
+              iconClassName="size-4"
               className="flex size-10 items-center justify-center pill rounded-full text-foreground/80 transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            >
-              {dark ? (
-                <Sun className="size-4" aria-hidden="true" />
-              ) : (
-                <Moon className="size-4" aria-hidden="true" />
-              )}
-            </button>
+            />
             <PrimaryCta to={cta.to} label={cta.label} size="default" />
           </div>
         </nav>

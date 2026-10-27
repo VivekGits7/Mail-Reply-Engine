@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Mail, Moon, Sun } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { motion, useAnimate, useReducedMotion } from 'motion/react';
-import { useTheme } from 'next-themes';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { selectIsAuthenticated } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
+import { ThemeMenu } from '@/components/common/ThemeMenu';
 import { preloadPages, whenIdle } from '@/components/pages';
 import { Orb } from '@/components/visual/Orb';
 import { EASE_FLUID } from '@/utils/animations';
@@ -38,7 +38,6 @@ export default function LoginPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const next = safeNext(params.get('next'));
-  const { resolvedTheme, setTheme } = useTheme();
   const reduced = useReducedMotion();
   const [scope, animate] = useAnimate();
   const [success, setSuccess] = useState(false);
@@ -57,8 +56,6 @@ export default function LoginPage() {
     if (!reduced && scope.current)
       void animate(scope.current, { x: SHAKE }, { duration: 0.5, ease: 'easeInOut' });
   }
-
-  const dark = resolvedTheme === 'dark';
 
   return (
     <main className="relative flex min-h-svh w-full items-center justify-center overflow-hidden px-4 py-24">
@@ -87,21 +84,7 @@ export default function LoginPage() {
         </Link>
       </motion.div>
 
-      <button
-        type="button"
-        onClick={() => setTheme(dark ? 'light' : 'dark')}
-        aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-        className="absolute top-5 right-5 flex size-11 items-center justify-center pill rounded-full text-foreground/80 transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-      >
-        <Sun
-          className="size-4.5 scale-100 rotate-0 transition-transform duration-300 dark:scale-0 dark:-rotate-90"
-          aria-hidden="true"
-        />
-        <Moon
-          className="absolute size-4.5 scale-0 rotate-90 transition-transform duration-300 dark:scale-100 dark:rotate-0"
-          aria-hidden="true"
-        />
-      </button>
+      <ThemeMenu className="absolute top-5 right-5 flex size-11 items-center justify-center pill rounded-full text-foreground/80 transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" />
 
       <motion.div
         className="relative z-10 w-full max-w-[26rem]"

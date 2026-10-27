@@ -1,5 +1,4 @@
-import { LogOut, Monitor, Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { LogOut } from 'lucide-react';
 import { selectUser } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { authApi } from '@/components/auth/Authapi';
@@ -8,8 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -19,7 +16,6 @@ import { humanize } from '@/utils/utility';
 
 export function UserMenu() {
   const user = useAppSelector(selectUser);
-  const { theme, setTheme } = useTheme();
 
   async function signOut() {
     try {
@@ -47,19 +43,6 @@ export function UserMenu() {
           <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
           <p className="mt-1 text-xs text-muted-foreground">{humanize(user?.role)}</p>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-          <DropdownMenuRadioItem value="light">
-            <Sun aria-hidden="true" /> Light
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark">
-            <Moon aria-hidden="true" /> Dark
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system">
-            <Monitor aria-hidden="true" /> System
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={signOut}>
           <LogOut aria-hidden="true" /> Sign out

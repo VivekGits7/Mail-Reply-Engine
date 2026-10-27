@@ -194,7 +194,7 @@ def report(found: Dict[str, List]) -> None:
     print(f"Demo people ({len(demo)}): {', '.join(demo) or 'none'}")
     print(f"Test seed people ({len(test)}): {', '.join(test) or 'none'}")
     print(
-        f"HR users ({len(found['users'])}): {', '.join(row['email'] for row in found['users']) or 'none'}"
+        f"Admins ({len(found['users'])}): {', '.join(row['email'] for row in found['users']) or 'none'}"
     )
     for table in (
         "cases",
@@ -267,7 +267,7 @@ async def run(apply: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Remove the people, cases and HR users added by seed_demo.py and seed_test_data.py"
+        description="Remove the people, cases and admins added by seed_demo.py and seed_test_data.py"
     )
     parser.add_argument(
         "--apply",

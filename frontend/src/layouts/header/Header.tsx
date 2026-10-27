@@ -1,13 +1,14 @@
 import { lazy, Suspense } from 'react';
-import { Bell, Menu, Moon, Plus, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { Bell, Menu, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { setSidebarOpen } from '@/redux/appSlice';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { SendingMenuIndicator } from '@/layouts/sidebar/SendingIndicator';
 import { BrandMark, SidebarNav } from '@/layouts/sidebar/Sidebar';
-import { useNavCounts } from '@/layouts/sidebar/useNav';
+import { useNavCounts, useSendingAlert } from '@/layouts/sidebar/useNav';
 import { activeGroup } from '@/layouts/sidebar/navItems';
+import { ThemeMenu } from '@/components/common/ThemeMenu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/utils/cn';
@@ -36,25 +37,6 @@ function AddJoinerButton() {
   );
 }
 
-function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const dark = resolvedTheme === 'dark';
-  return (
-    <button
-      type="button"
-      className={ROUND_BUTTON}
-      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-      onClick={() => setTheme(dark ? 'light' : 'dark')}
-    >
-      {dark ? (
-        <Sun className="size-4.5" aria-hidden="true" />
-      ) : (
-        <Moon className="size-4.5" aria-hidden="true" />
-      )}
-    </button>
-  );
-}
-
 function ApprovalsBell() {
   const { approvals } = useNavCounts();
   return (
@@ -77,6 +59,8 @@ export function Header() {
   const sidebarOpen = useAppSelector((state) => state.app.sidebarOpen);
   const { pathname } = useLocation();
   const inDesk = activeGroup(pathname).id === 'desk';
+  const sending = useSendingAlert();
+  const closeMenu = () => dispatch(setSidebarOpen(false));
 
   return (
     <header className="sticky top-2 z-30 flex flex-col gap-2 rounded-[2rem] glass p-2 lg:top-4 lg:flex-row lg:items-center lg:p-2.5">
@@ -85,10 +69,20 @@ export function Header() {
           <Button
             variant="outline"
             size="icon-lg"
-            aria-label="Open menu"
+            aria-label={sending ? `Open menu. ${sending.title}` : 'Open menu'}
+            className="relative"
             onClick={() => dispatch(setSidebarOpen(true))}
           >
             <Menu aria-hidden="true" />
+            {sending && (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute top-2 right-2 size-2 rounded-full ring-2 ring-card',
+                  sending.tone === 'danger' ? 'bg-ember' : 'bg-warning',
+                )}
+              />
+            )}
           </Button>
           <BrandMark compact />
         </div>
@@ -96,7 +90,7 @@ export function Header() {
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <QuickSearch />
           {isAdmin && inDesk && pathname !== '/joiners' && <AddJoinerButton />}
-          <ThemeToggle />
+          <ThemeMenu className={ROUND_BUTTON} />
           <ApprovalsBell />
           <UserMenu />
         </div>
@@ -112,7 +106,8 @@ export function Header() {
             </SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto">
-            <SidebarNav onNavigate={() => dispatch(setSidebarOpen(false))} />
+            <SendingMenuIndicator className="mx-3 mt-4" onNavigate={closeMenu} />
+            <SidebarNav onNavigate={closeMenu} />
           </div>
         </SheetContent>
       </Sheet>

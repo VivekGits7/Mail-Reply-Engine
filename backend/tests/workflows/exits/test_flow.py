@@ -132,6 +132,32 @@ async def test_blocked_clearance_alerts_hr_and_stops_chasing(
     )
 
 
+async def test_blocked_clearance_can_still_be_resolved(client, admin_headers, env):
+    data = await create_exit(client, admin_headers)
+    await clearance_reply(
+        env, "it@tcgdigital.com", "it", ClearanceState.BLOCKED, blocker="Laptop damaged"
+    )
+    await clearance_reply(env, "it@tcgdigital.com", "it", ClearanceState.DONE)
+    _, tasks = await clearances(client, admin_headers, data["case_id"])
+    assert tasks["it"]["status"] == "done"
+
+    await clearance_reply(
+        env, "admin@tcgdigital.com", "admin", ClearanceState.BLOCKED, blocker="ID card"
+    )
+    for role in ("admin", "finance", "manager"):
+        response = await client.patch(
+            f"/api/tasks/{tasks[role]['task_id']}",
+            json={"status": "done", "note": "Sorted with HR"},
+            headers=admin_headers,
+        )
+        assert response.status_code == 200, response.text
+    case, _ = await clearances(client, admin_headers, data["case_id"])
+    assert case["case"]["stage"] == "all_cleared"
+    assert env.graph.last_to("hr@tcgdigital.com")["subject"] == (
+        "All clearances complete: Rahul Sharma"
+    )
+
+
 async def test_unanswered_team_is_escalated_once(client, admin_headers, env):
     await create_exit(client, admin_headers)
     for _ in range(4):

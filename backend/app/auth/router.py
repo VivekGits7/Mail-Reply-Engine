@@ -49,7 +49,7 @@ from app.logger import get_logger
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
-users_router = APIRouter(prefix="/api/users", tags=["Users"])
+users_router = APIRouter(prefix="/api/users", tags=["Admins"])
 
 
 def to_user_data(user: User) -> UserData:
@@ -133,10 +133,10 @@ async def logout(
 @router.get(
     "/me",
     response_model=UserResponse,
-    summary="Get current user",
+    summary="Get current admin",
     responses={
         **COMMON_ERROR_RESPONSES,
-        200: {"model": UserResponse, "description": "Current user profile"},
+        200: {"model": UserResponse, "description": "Current admin profile"},
     },
 )
 @limiter.limit("60/minute")
@@ -144,7 +144,7 @@ async def me(
     request: Request, current_user: User = Depends(get_current_user)
 ) -> UserResponse:
     """
-    Return the logged in user.
+    Return the logged in admin.
     """
     return UserResponse(
         success=True,
@@ -156,13 +156,13 @@ async def me(
 @users_router.get(
     "",
     response_model=UserListResponse,
-    summary="List HR users",
+    summary="List admins",
     responses={
         **COMMON_ERROR_RESPONSES,
-        200: {"model": UserListResponse, "description": "HR users"},
+        200: {"model": UserListResponse, "description": "Admins"},
         403: {
             "model": ForbiddenResponse,
-            "description": "Only HR admins can list users",
+            "description": "Only HR admins can list admins",
         },
     },
 )
@@ -187,7 +187,7 @@ async def list_users(
     current_user: User = Depends(require_admin),
 ) -> UserListResponse:
     """
-    List HR dashboard users.
+    List HR dashboard admins.
 
     - **search**: optional, partial match on name or email
     - **role**: optional, hr_admin or hr_viewer
@@ -202,7 +202,7 @@ async def list_users(
         )
         return UserListResponse(
             success=True,
-            message=f"Found {total} users",
+            message=f"Found {total} admins",
             data=[to_user_data(user) for user in users],
             total=total,
             limit=limit,
@@ -211,7 +211,7 @@ async def list_users(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"List users error: {type(e).__name__}")
+        logger.error(f"List admins error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -219,13 +219,13 @@ async def list_users(
     "",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create an HR user",
+    summary="Create an admin",
     responses={
         **COMMON_ERROR_RESPONSES,
-        201: {"model": UserResponse, "description": "User created"},
+        201: {"model": UserResponse, "description": "Admin created"},
         403: {
             "model": ForbiddenResponse,
-            "description": "Only HR admins can create users",
+            "description": "Only HR admins can create admins",
         },
         409: {"model": ConflictResponse, "description": "Email already used"},
     },
@@ -237,7 +237,7 @@ async def create_user(
     current_user: User = Depends(require_admin),
 ) -> UserResponse:
     """
-    Create an HR dashboard user.
+    Create an HR dashboard admin.
 
     - **name**: required, 2 to 255 characters
     - **email**: required, unique login email
@@ -247,7 +247,7 @@ async def create_user(
     """
     try:
         if await User.find_by_email(data.email):
-            raise ConflictException("A user with this email already exists")
+            raise ConflictException("An admin with this email already exists")
         user = await User.create(
             data.name,
             data.email,
@@ -263,31 +263,31 @@ async def create_user(
             details={"role": user.role.value},
         )
         return UserResponse(
-            success=True, message="User created successfully", data=to_user_data(user)
+            success=True, message="Admin created successfully", data=to_user_data(user)
         )
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Create user error: {type(e).__name__}")
+        logger.error(f"Create admin error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @users_router.patch(
     "/{user_id}",
     response_model=UserResponse,
-    summary="Update an HR user",
+    summary="Update an admin",
     responses={
         **COMMON_ERROR_RESPONSES,
-        200: {"model": UserResponse, "description": "User updated"},
+        200: {"model": UserResponse, "description": "Admin updated"},
         400: {
             "model": BadRequestResponse,
             "description": "Would remove your own admin access or the last admin",
         },
         403: {
             "model": ForbiddenResponse,
-            "description": "Only HR admins can update users",
+            "description": "Only HR admins can update admins",
         },
-        404: {"model": NotFoundResponse, "description": "User not found"},
+        404: {"model": NotFoundResponse, "description": "Admin not found"},
     },
 )
 @limiter.limit("30/minute")
@@ -298,9 +298,9 @@ async def update_user(
     current_user: User = Depends(require_admin),
 ) -> UserResponse:
     """
-    Change a user's role, restricted access, active state or password.
+    Change an admin's role, restricted access, active state or password.
 
-    - **user_id**: the user's UUID, passed in the path
+    - **user_id**: the admin's UUID, passed in the path
     - **role**: optional, hr_admin or hr_viewer
     - **complaints_access**: optional, true or false
     - **is_active**: optional, true or false
@@ -311,7 +311,7 @@ async def update_user(
         validate_uuid((user_id, "user_id"))
         user = await User.find_by_id(user_id)
         if not user:
-            raise NotFoundException("User not found")
+            raise NotFoundException("Admin not found")
         demoting = (
             data.role == UserRole.HR_VIEWER or data.is_active is False
         ) and user.is_admin
@@ -338,10 +338,10 @@ async def update_user(
             details={"fields": changed + (["password"] if data.password else [])},
         )
         return UserResponse(
-            success=True, message="User updated successfully", data=to_user_data(user)
+            success=True, message="Admin updated successfully", data=to_user_data(user)
         )
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Update user error: {type(e).__name__}")
+        logger.error(f"Update admin error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")

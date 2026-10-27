@@ -32,7 +32,7 @@ export default function ActionLog() {
     <section>
       <PageHeader
         title="Activity log"
-        description="Everything the agent, the system and HR users did, with who did it and when. Document content and personal details are never stored here."
+        description="Everything the agent, the system and admins did, with who did it and when. Document content and personal details are never stored here."
       />
       <ActivityStats actor={params.actor_type} onActor={(actor_type) => set({ actor_type })} />
       <FilterBar>

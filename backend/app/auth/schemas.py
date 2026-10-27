@@ -7,7 +7,7 @@ from app.common.schemas import BaseResponse, PaginatedResponse
 
 USER_EXAMPLE: dict[str, Any] = {
     "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "name": "TCG User",
+    "name": "TCG Admin",
     "email": "tcg@tcgdigital.com",
     "role": "hr_admin",
     "complaints_access": False,
@@ -18,14 +18,14 @@ USER_EXAMPLE: dict[str, Any] = {
 
 class UserData(BaseModel):
     user_id: str = Field(
-        ..., description="User UUID", examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+        ..., description="Admin UUID", examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
     )
-    name: str = Field(..., description="Display name", examples=["TCG User"])
+    name: str = Field(..., description="Display name", examples=["TCG Admin"])
     email: str = Field(..., description="Login email", examples=["tcg@tcgdigital.com"])
     role: UserRole = Field(..., description="Dashboard role", examples=["hr_admin"])
     complaints_access: bool = Field(
         ...,
-        description="Whether the user can open the restricted area",
+        description="Whether the admin can open the restricted area",
         examples=[False],
     )
     is_active: bool = Field(
@@ -52,7 +52,7 @@ class LoginResponse(BaseResponse):
     expires_in: int = Field(
         ..., description="Token lifetime in seconds", examples=[86400]
     )
-    user: UserData = Field(..., description="Logged in user")
+    user: UserData = Field(..., description="Logged in admin")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -69,13 +69,13 @@ class LoginResponse(BaseResponse):
 
 
 class UserResponse(BaseResponse):
-    data: UserData = Field(..., description="User profile")
+    data: UserData = Field(..., description="Admin profile")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "success": True,
-                "message": "User retrieved",
+                "message": "Admin retrieved",
                 "data": USER_EXAMPLE,
             }
         }
@@ -83,13 +83,13 @@ class UserResponse(BaseResponse):
 
 
 class UserListResponse(PaginatedResponse):
-    data: List[UserData] = Field(..., description="HR users on this page")
+    data: List[UserData] = Field(..., description="Admins on this page")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "success": True,
-                "message": "Found 1 user",
+                "message": "Found 1 admin",
                 "data": [USER_EXAMPLE],
                 "total": 1,
                 "limit": 50,
@@ -105,7 +105,7 @@ class CreateUserRequest(BaseModel):
         min_length=2,
         max_length=255,
         description="Display name",
-        examples=["TCG User"],
+        examples=["TCG Admin"],
     )
     email: EmailStr = Field(
         ..., description="Login email, must be unique", examples=["tcg@tcgdigital.com"]
@@ -122,7 +122,7 @@ class CreateUserRequest(BaseModel):
     )
     complaints_access: bool = Field(
         default=False,
-        description="Whether the user can open the restricted area",
+        description="Whether the admin can open the restricted area",
         examples=[False],
     )
 
@@ -137,7 +137,7 @@ class CreateUserRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "name": "TCG User",
+                "name": "TCG Admin",
                 "email": "tcg@tcgdigital.com",
                 "password": "Str0ngPass!",
                 "role": "hr_viewer",

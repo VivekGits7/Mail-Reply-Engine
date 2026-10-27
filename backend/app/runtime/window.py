@@ -52,6 +52,18 @@ def add_working_days(
     return current
 
 
+def previous_working_day(
+    day: date, working_weekdays: Iterable[int], holidays: set[date]
+) -> date:
+    weekdays = list(working_weekdays)
+    current = day - timedelta(days=1)
+    for _ in range(SEARCH_DAYS):
+        if is_working_day(current, weekdays, holidays):
+            return current
+        current -= timedelta(days=1)
+    raise ValueError("No working day found, check working days and holidays")
+
+
 def working_days_from(
     day: date, count: int, working_weekdays: Iterable[int], holidays: set[date]
 ) -> list[date]:

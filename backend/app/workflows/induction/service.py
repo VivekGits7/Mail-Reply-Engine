@@ -358,8 +358,11 @@ async def on_approved(approval: Approval) -> int:
         created += 1
     await case.set_stage(InductionStage.BOOKING.value)
     welcome_at = at_local(person.joining_date, parse_clock(rs.welcome_email_time))
+    # A weekend check would wait for Monday's window, too late for a Monday joiner.
     check_at = at_local(
-        person.joining_date - timedelta(days=1),
+        runtime.previous_working_day(
+            person.joining_date, rs.sending_days, await runtime.holidays()
+        ),
         parse_clock(rs.appointment_letter_check_time),
     )
     await start_email(

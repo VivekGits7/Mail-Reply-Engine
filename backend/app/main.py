@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
         logger.warning(
             f"Graph subscription not ready, polling covers it: {type(e).__name__}"
         )
-    # Inline mode has no Celery beat, so the API polls the mailbox and runs due jobs itself.
+    # Inline mode has no Celery beat, so the API runs the beat schedule itself.
     run_inline = settings.EVENT_DISPATCH_MODE == "inline" and not settings.is_test
     if run_inline:
         inline_scheduler.start()

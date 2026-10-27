@@ -25,6 +25,11 @@ class EmailCategory(str, Enum):
     UNRELATED = "unrelated"
 
 
+class EmailDirection(str, Enum):
+    INBOUND = "inbound"
+    OUTBOUND = "outbound"
+
+
 class HireCategory(str, Enum):
     CAMPUS = "campus"
     LATERAL = "lateral"

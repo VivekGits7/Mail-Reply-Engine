@@ -181,6 +181,15 @@ export interface CaseDetailResponse {
   data: CaseDetailData;
 }
 
+export interface CaseEmailsResponse {
+  success?: boolean;
+  message: string;
+  total: number;
+  limit: number;
+  offset: number;
+  data: EmailThread[];
+}
+
 export const CaseFlag = {
   DROPOUT_RISK: 'dropout_risk',
   NAME_MISMATCH: 'name_mismatch',
@@ -450,6 +459,20 @@ export interface DryRunResponse {
   success?: boolean;
   message: string;
   data: DryRunData;
+}
+
+export const EmailDirection = {
+  INBOUND: 'inbound',
+  OUTBOUND: 'outbound',
+} as const;
+export type EmailDirection = (typeof EmailDirection)[keyof typeof EmailDirection];
+
+export interface EmailThread {
+  thread_id: string;
+  subject?: string | null;
+  message_count: number;
+  last_at: string;
+  messages: ThreadMessage[];
 }
 
 export interface EmptyResponse {
@@ -1150,6 +1173,32 @@ export interface TemplateSummary {
   placeholders: string[];
   is_active: boolean;
   updated_at?: string | null;
+}
+
+export interface ThreadAttachment {
+  attachment_id: string;
+  file_name: string;
+  mime_type: string;
+  size: number;
+}
+
+export interface ThreadMessage {
+  email_id: string;
+  direction: EmailDirection;
+  from_name?: string | null;
+  from_email?: string | null;
+  to: string[];
+  cc: string[];
+  subject?: string | null;
+  body?: string | null;
+  at: string;
+  case_id?: string | null;
+  case_type?: string | null;
+  category?: string | null;
+  status: string;
+  is_dry_run: boolean;
+  is_automatic: boolean;
+  attachments: ThreadAttachment[];
 }
 
 export interface TimelineEntry {

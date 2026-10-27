@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router';
 import { LiquidPill } from '@/components/visual/LiquidPill';
 import { cn } from '@/utils/cn';
 import { ADMIN_GROUP_ID, NAV_GROUPS, activeGroup, type NavGroup, type NavItem } from './navItems';
+import { SendingRailIndicator } from './SendingIndicator';
 import { useAllowedItems, useNavCounts } from './useNav';
 
 type CountKey = NonNullable<NavItem['count']>;
@@ -118,7 +119,10 @@ export function Sidebar() {
           ))}
         </div>
       </nav>
-      {admin && <CategoryLink group={admin} active={current.id === ADMIN_GROUP_ID} />}
+      <div className="flex flex-col items-center gap-3">
+        <SendingRailIndicator />
+        {admin && <CategoryLink group={admin} active={current.id === ADMIN_GROUP_ID} />}
+      </div>
     </aside>
   );
 }

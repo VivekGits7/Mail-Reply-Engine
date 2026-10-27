@@ -153,6 +153,13 @@ class Case:
         )
 
     @classmethod
+    async def for_person(cls, person_id: uuid.UUID) -> List["Case"]:
+        rows = await execute_query(
+            "SELECT * FROM cases WHERE person_id = $1 ORDER BY opened_at", person_id
+        )
+        return [cls(**dict(row)) for row in rows]
+
+    @classmethod
     async def children(cls, parent_case_id: uuid.UUID) -> List["Case"]:
         rows = await execute_query(
             "SELECT * FROM cases WHERE parent_case_id = $1 ORDER BY opened_at",
@@ -423,6 +430,14 @@ class Task:
             TaskStatus.NOT_APPLICABLE,
             TaskStatus.CANCELLED,
             TaskStatus.BLOCKED,
+        }
+
+    @property
+    def is_final(self) -> bool:
+        return self.status in {
+            TaskStatus.DONE,
+            TaskStatus.NOT_APPLICABLE,
+            TaskStatus.CANCELLED,
         }
 
     @classmethod

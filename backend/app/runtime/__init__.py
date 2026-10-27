@@ -14,5 +14,6 @@ from app.runtime.window import (
     in_sending_window,
     is_working_day,
     next_send_time,
+    previous_working_day,
     working_days_from,
 )
