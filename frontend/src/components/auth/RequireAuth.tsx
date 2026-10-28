@@ -9,9 +9,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) {
     const target = `${location.pathname}${location.search}`;
-    return (
-      <Navigate to={target === '/' ? '/welcome' : `/welcome?next=${encodeURIComponent(target)}`} replace />
-    );
+    return <Navigate to={target === '/' ? '/login' : `/login?next=${encodeURIComponent(target)}`} replace />;
   }
   return children;
 }

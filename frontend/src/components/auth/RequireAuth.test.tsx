@@ -6,9 +6,9 @@ import { logoutUser, setCredentials } from '@/redux/authSlice';
 import { store } from '@/redux/store';
 import { RequireAdmin, RequireAuth } from './RequireAuth';
 
-function WelcomeProbe() {
+function LoginProbe() {
   const location = useLocation();
-  return <p>welcome page {location.search}</p>;
+  return <p>login page {location.search}</p>;
 }
 
 function renderAt(path: string) {
@@ -16,7 +16,7 @@ function renderAt(path: string) {
     <Provider store={store}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route path="/welcome" element={<WelcomeProbe />} />
+          <Route path="/login" element={<LoginProbe />} />
           <Route
             path="/admin/users"
             element={
@@ -43,10 +43,10 @@ const viewer = {
 };
 
 describe('RequireAuth', () => {
-  it('sends signed out visitors to the landing page and remembers where they were going', () => {
+  it('sends signed out visitors to the login page and remembers where they were going', () => {
     store.dispatch(logoutUser());
     renderAt('/admin/users?role=hr_admin');
-    expect(screen.getByText(/welcome page/)).toHaveTextContent('?next=%2Fadmin%2Fusers%3Frole%3Dhr_admin');
+    expect(screen.getByText(/login page/)).toHaveTextContent('?next=%2Fadmin%2Fusers%3Frole%3Dhr_admin');
   });
 
   it('blocks viewers from admin only screens', () => {
