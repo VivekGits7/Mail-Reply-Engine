@@ -227,9 +227,9 @@ async def seed_users(api: Api) -> None:
                     "complaints_access": complaints,
                 },
             )
-            print(f"  admin {name.split()[0]}: added as {role.value}")
+            print(f"  user {name.split()[0]}: added as {role.value}")
         except RuntimeError as e:
-            print(f"  admin {name}: skipped, {e}")
+            print(f"  user {name}: skipped, {e}")
 
 
 async def wait_for_drafts(api: Api, induction_cases: List[str]) -> None:
@@ -268,7 +268,7 @@ async def seed(api_url: str, email: Optional[str]) -> None:
                 exits = await seed_exits(api, today)
                 print("Induction plans")
                 inductions = await seed_inductions(api, joiners)
-                print("Admins")
+                print("Users")
                 await seed_users(api)
                 await wait_for_drafts(api, inductions)
                 cancelled = 0
@@ -292,7 +292,7 @@ async def seed(api_url: str, email: Optional[str]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Add demo joiners, exits, induction plans and admins through the API"
+        description="Add demo joiners, exits, induction plans and users through the API"
     )
     parser.add_argument(
         "--api-url",

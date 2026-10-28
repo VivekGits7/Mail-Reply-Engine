@@ -22,7 +22,8 @@ guvrun scripts/check_mail.py --send-to tcg@tcgdigital.com
 5. Create an HR admin and start the server:
 
 ```bash
-guvrun scripts/create_admin.py --name "TCG User" --email tcg@tcgdigital.com
+guvrun scripts/create_admin.py --name "TCG User" --email tcg@tcgdigital.com --photo ~/Pictures/tcg.jpg
+guvrun scripts/create_admin.py --email tcg@tcgdigital.com --photo ~/Pictures/tcg.jpg --set-photo
 guv app.main:app --reload --host 0.0.0.0 --port 8000
 guvtest tests/
 ```

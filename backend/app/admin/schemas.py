@@ -110,9 +110,7 @@ class KillSwitchData(BaseModel):
     kill_switch: bool = Field(
         ..., description="Whether all sending is stopped", examples=[True]
     )
-    changed_by: str = Field(
-        ..., description="Admin who changed it", examples=["TCG Admin"]
-    )
+    changed_by: str = Field(..., description="User who changed it", examples=["TCG HR"])
     changed_at: str = Field(
         ...,
         description="ISO 8601 time of the change",
@@ -130,7 +128,7 @@ class KillSwitchResponse(BaseResponse):
                 "message": "Sending stopped",
                 "data": {
                     "kill_switch": True,
-                    "changed_by": "TCG Admin",
+                    "changed_by": "TCG HR",
                     "changed_at": "2026-10-22T12:05:00+05:30",
                 },
             }
@@ -145,9 +143,7 @@ class DryRunData(BaseModel):
     test_inbox: str = Field(
         ..., description="Test inbox", examples=["hr-test@tcgdigital.com"]
     )
-    changed_by: str = Field(
-        ..., description="Admin who changed it", examples=["TCG Admin"]
-    )
+    changed_by: str = Field(..., description="User who changed it", examples=["TCG HR"])
     changed_at: str = Field(
         ...,
         description="ISO 8601 time of the change",
@@ -166,7 +162,7 @@ class DryRunResponse(BaseResponse):
                 "data": {
                     "dry_run": False,
                     "test_inbox": "hr-test@tcgdigital.com",
-                    "changed_by": "TCG Admin",
+                    "changed_by": "TCG HR",
                     "changed_at": "2026-10-22T12:06:00+05:30",
                 },
             }
@@ -499,7 +495,7 @@ class ActionLogItem(BaseModel):
     actor_type: str = Field(
         ..., description="agent, user or system", examples=["agent"]
     )
-    actor_name: str = Field(..., description="Admin name, or agent", examples=["agent"])
+    actor_name: str = Field(..., description="User name, or agent", examples=["agent"])
     action: str = Field(
         ..., description="What happened", examples=["checklist_item_verified"]
     )

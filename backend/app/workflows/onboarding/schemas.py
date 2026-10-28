@@ -11,11 +11,19 @@ from app.cases.schemas import (
     ChecklistItemData,
     TaskData,
 )
+from app.common.attachment import FileAttachment
 from app.common.enums import HireCategory
 from app.common.schemas import BaseResponse, PaginatedResponse
 from app.people.schemas import PERSON_EXAMPLE, PersonData
 
 LEVEL_PATTERN = re.compile(r"^L\d{1,2}$")
+PHOTO_EXAMPLE = {
+    "file_name": "rahul.jpg",
+    "file_url": "uploads/joiner_photo/9f2c4e1a.jpg",
+    "mime_type": "image/jpeg",
+    "size": 240000,
+}
+PHOTO_URL_EXAMPLE = "https://files.your-domain/mail-reply-engine/uploads/joiner_photo/9f2c4e1a.jpg?X-Amz-Signature=..."
 
 
 def _strip(value: str) -> str:
@@ -68,6 +76,11 @@ class CreateJoinerRequest(BaseModel):
     manager_email: EmailStr = Field(
         ..., description="Reporting manager email", examples=["amit.roy@tcgdigital.com"]
     )
+    photo: Optional[FileAttachment] = Field(
+        default=None,
+        description="Profile photo uploaded with the joiner_photo purpose",
+        examples=[PHOTO_EXAMPLE],
+    )
 
     @field_validator("full_name", "location", "manager_name")
     @classmethod
@@ -95,6 +108,7 @@ class CreateJoinerRequest(BaseModel):
                 "date_of_birth": "1990-02-20",
                 "manager_name": "Amit Roy",
                 "manager_email": "amit.roy@tcgdigital.com",
+                "photo": PHOTO_EXAMPLE,
             }
         }
     )
@@ -146,6 +160,11 @@ class UpdateJoinerRequest(BaseModel):
         description="Reporting manager email",
         examples=["amit.roy@tcgdigital.com"],
     )
+    photo: Optional[FileAttachment] = Field(
+        default=None,
+        description="New profile photo, send null to remove it",
+        examples=[PHOTO_EXAMPLE],
+    )
 
     @field_validator("level")
     @classmethod
@@ -162,6 +181,7 @@ class UpdateJoinerRequest(BaseModel):
             "example": {
                 "full_name": "Rahul Kumar Sharma",
                 "date_of_birth": "1990-02-21",
+                "photo": PHOTO_EXAMPLE,
             }
         }
     )
@@ -384,6 +404,11 @@ class JoinerListItem(BaseModel):
         description="ISO 8601 time of the last change",
         examples=["2026-10-22T11:05:00+05:30"],
     )
+    photo_url: Optional[str] = Field(
+        default=None,
+        description="Short lived link to the profile photo, null when there is none",
+        examples=[PHOTO_URL_EXAMPLE],
+    )
 
 
 JOINER_LIST_EXAMPLE = {
@@ -401,6 +426,7 @@ JOINER_LIST_EXAMPLE = {
     "docs_total": 8,
     "next_followup_at": "2026-10-24T10:00:00+05:30",
     "updated_at": "2026-10-22T11:05:00+05:30",
+    "photo_url": PHOTO_URL_EXAMPLE,
 }
 
 

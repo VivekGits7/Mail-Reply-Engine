@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from app.people.model import Person
+from app.storage.service import photo_url
 
 PERSON_EXAMPLE = {
     "person_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -21,6 +22,7 @@ PERSON_EXAMPLE = {
     "recruiter_email": "recruiter@tcgdigital.com",
     "role": "candidate",
     "status": "active",
+    "photo_url": "https://files.your-domain/mail-reply-engine/uploads/joiner_photo/9f2c4e1a.jpg?X-Amz-Signature=...",
 }
 
 
@@ -79,6 +81,13 @@ class PersonData(BaseModel):
     status: str = Field(
         ..., description="active, exiting, exited or dropped", examples=["active"]
     )
+    photo_url: Optional[str] = Field(
+        default=None,
+        description="Short lived link to the profile photo, null when there is none",
+        examples=[
+            "https://files.your-domain/mail-reply-engine/uploads/joiner_photo/9f2c4e1a.jpg?X-Amz-Signature=..."
+        ],
+    )
 
 
 def to_person_data(person: Person) -> PersonData:
@@ -101,4 +110,5 @@ def to_person_data(person: Person) -> PersonData:
         recruiter_email=person.recruiter_email,
         role=person.role.value,
         status=person.status.value,
+        photo_url=photo_url(person.photo_key),
     )

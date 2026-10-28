@@ -3,33 +3,49 @@ from typing import Any, List, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.auth.enums import UserRole
+from app.common.attachment import FileAttachment
 from app.common.schemas import BaseResponse, PaginatedResponse
+
+PHOTO_EXAMPLE: dict[str, Any] = {
+    "file_name": "hr.jpg",
+    "file_url": "uploads/user_photo/0b7c4f2e.jpg",
+    "mime_type": "image/jpeg",
+    "size": 184320,
+}
 
 USER_EXAMPLE: dict[str, Any] = {
     "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "name": "TCG Admin",
+    "name": "TCG HR",
     "email": "tcg@tcgdigital.com",
     "role": "hr_admin",
     "complaints_access": False,
     "is_active": True,
+    "photo_url": "https://files.your-domain/mail-reply-engine/uploads/user_photo/0b7c4f2e.jpg?X-Amz-Signature=...",
     "last_login_at": "2026-10-21T09:12:00+05:30",
 }
 
 
 class UserData(BaseModel):
     user_id: str = Field(
-        ..., description="Admin UUID", examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+        ..., description="User UUID", examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
     )
-    name: str = Field(..., description="Display name", examples=["TCG Admin"])
+    name: str = Field(..., description="Display name", examples=["TCG HR"])
     email: str = Field(..., description="Login email", examples=["tcg@tcgdigital.com"])
     role: UserRole = Field(..., description="Dashboard role", examples=["hr_admin"])
     complaints_access: bool = Field(
         ...,
-        description="Whether the admin can open the restricted area",
+        description="Whether the user can open the restricted area",
         examples=[False],
     )
     is_active: bool = Field(
         ..., description="Whether the account can log in", examples=[True]
+    )
+    photo_url: Optional[str] = Field(
+        default=None,
+        description="Short lived link to the profile photo, null when there is none",
+        examples=[
+            "https://files.your-domain/mail-reply-engine/uploads/user_photo/0b7c4f2e.jpg?X-Amz-Signature=..."
+        ],
     )
     last_login_at: Optional[str] = Field(
         default=None,
@@ -52,7 +68,7 @@ class LoginResponse(BaseResponse):
     expires_in: int = Field(
         ..., description="Token lifetime in seconds", examples=[86400]
     )
-    user: UserData = Field(..., description="Logged in admin")
+    user: UserData = Field(..., description="Logged in user")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -69,13 +85,13 @@ class LoginResponse(BaseResponse):
 
 
 class UserResponse(BaseResponse):
-    data: UserData = Field(..., description="Admin profile")
+    data: UserData = Field(..., description="User profile")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "success": True,
-                "message": "Admin retrieved",
+                "message": "User retrieved",
                 "data": USER_EXAMPLE,
             }
         }
@@ -83,13 +99,13 @@ class UserResponse(BaseResponse):
 
 
 class UserListResponse(PaginatedResponse):
-    data: List[UserData] = Field(..., description="Admins on this page")
+    data: List[UserData] = Field(..., description="Users on this page")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "success": True,
-                "message": "Found 1 admin",
+                "message": "Found 1 user",
                 "data": [USER_EXAMPLE],
                 "total": 1,
                 "limit": 50,
@@ -105,7 +121,7 @@ class CreateUserRequest(BaseModel):
         min_length=2,
         max_length=255,
         description="Display name",
-        examples=["TCG Admin"],
+        examples=["TCG HR"],
     )
     email: EmailStr = Field(
         ..., description="Login email, must be unique", examples=["tcg@tcgdigital.com"]
@@ -122,8 +138,13 @@ class CreateUserRequest(BaseModel):
     )
     complaints_access: bool = Field(
         default=False,
-        description="Whether the admin can open the restricted area",
+        description="Whether the user can open the restricted area",
         examples=[False],
+    )
+    photo: Optional[FileAttachment] = Field(
+        default=None,
+        description="Profile photo uploaded with the user_photo purpose",
+        examples=[PHOTO_EXAMPLE],
     )
 
     @field_validator("name")
@@ -137,11 +158,12 @@ class CreateUserRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "name": "TCG Admin",
+                "name": "TCG HR",
                 "email": "tcg@tcgdigital.com",
                 "password": "Str0ngPass!",
                 "role": "hr_viewer",
                 "complaints_access": False,
+                "photo": PHOTO_EXAMPLE,
             }
         }
     )
@@ -166,6 +188,11 @@ class UpdateUserRequest(BaseModel):
         description="New password",
         examples=["N3wPassword!"],
     )
+    photo: Optional[FileAttachment] = Field(
+        default=None,
+        description="New profile photo, send null to remove it",
+        examples=[PHOTO_EXAMPLE],
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -174,6 +201,17 @@ class UpdateUserRequest(BaseModel):
                 "complaints_access": True,
                 "is_active": True,
                 "password": None,
+                "photo": PHOTO_EXAMPLE,
             }
         }
     )
+
+
+class UpdateMyPhotoRequest(BaseModel):
+    photo: Optional[FileAttachment] = Field(
+        ...,
+        description="New profile photo, send null to remove it",
+        examples=[PHOTO_EXAMPLE],
+    )
+
+    model_config = ConfigDict(json_schema_extra={"example": {"photo": PHOTO_EXAMPLE}})

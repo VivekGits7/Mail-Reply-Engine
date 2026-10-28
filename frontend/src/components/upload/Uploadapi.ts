@@ -8,7 +8,23 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   txt: 'text/plain',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
 };
+
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+export type PhotoPurpose = 'user_photo' | 'joiner_photo';
+
+export interface PhotoChange {
+  file: File | null;
+  removed: boolean;
+}
+
+export const NO_PHOTO_CHANGE: PhotoChange = { file: null, removed: false };
 
 export const ACCEPT_BY_PURPOSE: Record<UploadPurpose, string> = {
   appointment_letter: '.pdf',
@@ -16,6 +32,8 @@ export const ACCEPT_BY_PURPOSE: Record<UploadPurpose, string> = {
   reminder_list: '.csv,.xlsx',
   survey_export: '.xlsx',
   transcript: '.pdf,.docx,.txt',
+  user_photo: '.jpg,.jpeg,.png,.webp',
+  joiner_photo: '.jpg,.jpeg,.png,.webp',
 };
 
 // Browsers report CSV as application/vnd.ms-excel on Windows, so trust the extension first.
@@ -40,7 +58,8 @@ export const uploadApi = {
     Object.entries(presigned.fields).forEach(([key, value]) => form.append(key, value));
     form.append('file', file);
     await axios.post(presigned.upload_url, form, {
-      onUploadProgress: (event) => onProgress(event.total ? Math.round((event.loaded / event.total) * 100) : 0),
+      onUploadProgress: (event) =>
+        onProgress(event.total ? Math.round((event.loaded / event.total) * 100) : 0),
     });
   },
 };
@@ -53,4 +72,17 @@ export async function uploadFile(
   const presigned = await uploadApi.presign(file, purpose);
   await uploadApi.send(presigned, file, onProgress);
   return { file_name: file.name, file_url: presigned.file_url, mime_type: mimeTypeOf(file), size: file.size };
+}
+
+export function isPhotoChanged(change: PhotoChange) {
+  return Boolean(change.file) || change.removed;
+}
+
+// Undefined leaves the saved photo alone, null removes it.
+export async function resolvePhoto(
+  change: PhotoChange,
+  purpose: PhotoPurpose,
+): Promise<FileAttachment | null | undefined> {
+  if (change.file) return uploadFile(change.file, purpose);
+  return change.removed ? null : undefined;
 }

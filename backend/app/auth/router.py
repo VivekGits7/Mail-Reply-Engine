@@ -9,6 +9,7 @@ from app.auth.model import User
 from app.auth.schemas import (
     CreateUserRequest,
     LoginResponse,
+    UpdateMyPhotoRequest,
     UpdateUserRequest,
     UserData,
     UserListResponse,
@@ -45,15 +46,18 @@ from app.error import (
 )
 from app.limiter import limiter
 from app.logger import get_logger
+from app.storage.schemas import UploadPurpose
+from app.storage.service import photo_url
+from app.storage.uploads import replace_photo, verify_upload
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
-users_router = APIRouter(prefix="/api/users", tags=["Admins"])
+users_router = APIRouter(prefix="/api/users", tags=["Users"])
 
 
 def to_user_data(user: User) -> UserData:
-    return UserData(**user.to_dict())
+    return UserData(**user.to_dict(), photo_url=photo_url(user.photo_key))
 
 
 @router.post(
@@ -133,10 +137,10 @@ async def logout(
 @router.get(
     "/me",
     response_model=UserResponse,
-    summary="Get current admin",
+    summary="Get current user",
     responses={
         **COMMON_ERROR_RESPONSES,
-        200: {"model": UserResponse, "description": "Current admin profile"},
+        200: {"model": UserResponse, "description": "Current user profile"},
     },
 )
 @limiter.limit("60/minute")
@@ -144,7 +148,7 @@ async def me(
     request: Request, current_user: User = Depends(get_current_user)
 ) -> UserResponse:
     """
-    Return the logged in admin.
+    Return the logged in user.
     """
     return UserResponse(
         success=True,
@@ -153,16 +157,64 @@ async def me(
     )
 
 
+@router.patch(
+    "/me/photo",
+    response_model=UserResponse,
+    summary="Change my photo",
+    responses={
+        **COMMON_ERROR_RESPONSES,
+        200: {"model": UserResponse, "description": "Photo saved or removed"},
+        400: {
+            "model": BadRequestResponse,
+            "description": "Photo not uploaded, wrong type or not a user_photo upload",
+        },
+    },
+)
+@limiter.limit("10/minute")
+async def update_my_photo(
+    request: Request,
+    data: UpdateMyPhotoRequest,
+    current_user: User = Depends(get_current_user),
+) -> UserResponse:
+    """
+    Set or remove the logged in user's profile photo, works for every role.
+
+    - **photo**: required, a FileAttachment from presign with purpose user_photo, or null to remove the photo
+    - the old photo file is deleted from storage once the new one is saved
+    """
+    try:
+        if data.photo:
+            await verify_upload(data.photo, UploadPurpose.USER_PHOTO)
+        await replace_photo(current_user, data.photo, UploadPurpose.USER_PHOTO)
+        await log_user_action(
+            current_user.user_id,
+            "user_photo_changed",
+            entity_type="user",
+            entity_id=current_user.user_id,
+            details={"removed": data.photo is None},
+        )
+        return UserResponse(
+            success=True,
+            message="Photo saved" if data.photo else "Photo removed",
+            data=to_user_data(current_user),
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"Update photo error: {type(e).__name__}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @users_router.get(
     "",
     response_model=UserListResponse,
-    summary="List admins",
+    summary="List users",
     responses={
         **COMMON_ERROR_RESPONSES,
-        200: {"model": UserListResponse, "description": "Admins"},
+        200: {"model": UserListResponse, "description": "Users"},
         403: {
             "model": ForbiddenResponse,
-            "description": "Only HR admins can list admins",
+            "description": "Only HR admins can list users",
         },
     },
 )
@@ -187,7 +239,7 @@ async def list_users(
     current_user: User = Depends(require_admin),
 ) -> UserListResponse:
     """
-    List HR dashboard admins.
+    List HR dashboard users.
 
     - **search**: optional, partial match on name or email
     - **role**: optional, hr_admin or hr_viewer
@@ -202,7 +254,7 @@ async def list_users(
         )
         return UserListResponse(
             success=True,
-            message=f"Found {total} admins",
+            message=f"Found {total} users",
             data=[to_user_data(user) for user in users],
             total=total,
             limit=limit,
@@ -211,7 +263,7 @@ async def list_users(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"List admins error: {type(e).__name__}")
+        logger.error(f"List users error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -219,13 +271,17 @@ async def list_users(
     "",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create an admin",
+    summary="Create a user",
     responses={
         **COMMON_ERROR_RESPONSES,
-        201: {"model": UserResponse, "description": "Admin created"},
+        201: {"model": UserResponse, "description": "User created"},
+        400: {
+            "model": BadRequestResponse,
+            "description": "Photo not uploaded, wrong type or not a user_photo upload",
+        },
         403: {
             "model": ForbiddenResponse,
-            "description": "Only HR admins can create admins",
+            "description": "Only HR admins can create users",
         },
         409: {"model": ConflictResponse, "description": "Email already used"},
     },
@@ -237,57 +293,61 @@ async def create_user(
     current_user: User = Depends(require_admin),
 ) -> UserResponse:
     """
-    Create an HR dashboard admin.
+    Create an HR dashboard user.
 
     - **name**: required, 2 to 255 characters
     - **email**: required, unique login email
     - **password**: required, at least 8 characters
     - **role**: optional, hr_admin or hr_viewer, defaults to hr_viewer
     - **complaints_access**: optional, defaults to false
+    - **photo**: optional, a FileAttachment from presign with purpose user_photo
     """
     try:
         if await User.find_by_email(data.email):
-            raise ConflictException("An admin with this email already exists")
+            raise ConflictException("A user with this email already exists")
+        if data.photo:
+            await verify_upload(data.photo, UploadPurpose.USER_PHOTO)
         user = await User.create(
             data.name,
             data.email,
             hash_password(data.password),
             data.role,
             data.complaints_access,
+            data.photo.file_url if data.photo else None,
         )
         await log_user_action(
             current_user.user_id,
             "user_created",
             entity_type="user",
             entity_id=user.user_id,
-            details={"role": user.role.value},
+            details={"role": user.role.value, "has_photo": bool(data.photo)},
         )
         return UserResponse(
-            success=True, message="Admin created successfully", data=to_user_data(user)
+            success=True, message="User created successfully", data=to_user_data(user)
         )
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Create admin error: {type(e).__name__}")
+        logger.error(f"Create user error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @users_router.patch(
     "/{user_id}",
     response_model=UserResponse,
-    summary="Update an admin",
+    summary="Update a user",
     responses={
         **COMMON_ERROR_RESPONSES,
-        200: {"model": UserResponse, "description": "Admin updated"},
+        200: {"model": UserResponse, "description": "User updated"},
         400: {
             "model": BadRequestResponse,
-            "description": "Would remove your own admin access or the last admin",
+            "description": "Would remove your own admin access or the last admin, or the photo is not a valid upload",
         },
         403: {
             "model": ForbiddenResponse,
-            "description": "Only HR admins can update admins",
+            "description": "Only HR admins can update users",
         },
-        404: {"model": NotFoundResponse, "description": "Admin not found"},
+        404: {"model": NotFoundResponse, "description": "User not found"},
     },
 )
 @limiter.limit("30/minute")
@@ -298,20 +358,21 @@ async def update_user(
     current_user: User = Depends(require_admin),
 ) -> UserResponse:
     """
-    Change an admin's role, restricted access, active state or password.
+    Change a user's role, restricted access, active state, password or photo.
 
-    - **user_id**: the admin's UUID, passed in the path
+    - **user_id**: the user's UUID, passed in the path
     - **role**: optional, hr_admin or hr_viewer
     - **complaints_access**: optional, true or false
     - **is_active**: optional, true or false
     - **password**: optional, at least 8 characters
+    - **photo**: optional, a FileAttachment from presign with purpose user_photo, send null to remove it
     - you can't remove your own admin role or deactivate yourself
     """
     try:
         validate_uuid((user_id, "user_id"))
         user = await User.find_by_id(user_id)
         if not user:
-            raise NotFoundException("Admin not found")
+            raise NotFoundException("User not found")
         demoting = (
             data.role == UserRole.HR_VIEWER or data.is_active is False
         ) and user.is_admin
@@ -319,16 +380,24 @@ async def update_user(
             raise BadRequestException("You can't remove your own admin access")
         if demoting and await User.active_admin_count() <= 1:
             raise BadRequestException("At least one active HR admin is needed")
+        photo_sent = "photo" in data.model_fields_set
+        if data.photo:
+            await verify_upload(data.photo, UploadPurpose.USER_PHOTO)
         await user.update(
             role=data.role,
             complaints_access=data.complaints_access,
             is_active=data.is_active,
             password_hash=hash_password(data.password) if data.password else None,
         )
+        if photo_sent:
+            await replace_photo(user, data.photo, UploadPurpose.USER_PHOTO)
         changed = sorted(
-            key
-            for key, value in data.model_dump(exclude={"password"}).items()
-            if value is not None
+            [
+                key
+                for key, value in data.model_dump(exclude={"password", "photo"}).items()
+                if value is not None
+            ]
+            + (["photo"] if photo_sent else [])
         )
         await log_user_action(
             current_user.user_id,
@@ -338,10 +407,10 @@ async def update_user(
             details={"fields": changed + (["password"] if data.password else [])},
         )
         return UserResponse(
-            success=True, message="Admin updated successfully", data=to_user_data(user)
+            success=True, message="User updated successfully", data=to_user_data(user)
         )
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Update admin error: {type(e).__name__}")
+        logger.error(f"Update user error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")

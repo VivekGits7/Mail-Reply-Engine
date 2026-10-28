@@ -3,7 +3,9 @@ from pathlib import PurePath
 from typing import Any, Dict, Optional
 
 import aioboto3
+import botocore.session
 from aiobotocore.config import AioConfig
+from botocore.config import Config
 
 from app.config import settings
 from app.error import StorageException
@@ -12,6 +14,7 @@ from app.logger import get_logger
 logger = get_logger(__name__)
 
 _session: Optional[aioboto3.Session] = None
+_signer: Any = None
 
 
 def _get_session() -> aioboto3.Session:
@@ -30,6 +33,35 @@ def _client(endpoint_url: str) -> Any:
         region_name=settings.S3_REGION,
         config=AioConfig(signature_version="s3v4", s3={"addressing_style": "path"}),
     )
+
+
+# Signing a GET link is pure computation, so a plain botocore client keeps photo links sync and cheap.
+def _photo_signer() -> Any:
+    global _signer
+    if _signer is None:
+        _signer = botocore.session.get_session().create_client(
+            "s3",
+            endpoint_url=settings.S3_PUBLIC_ENDPOINT_URL,
+            aws_access_key_id=settings.S3_ACCESS_KEY,
+            aws_secret_access_key=settings.S3_SECRET_KEY,
+            region_name=settings.S3_REGION,
+            config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+        )
+    return _signer
+
+
+def photo_url(key: Optional[str]) -> Optional[str]:
+    if not key:
+        return None
+    try:
+        return _photo_signer().generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.S3_BUCKET, "Key": key},
+            ExpiresIn=settings.PHOTO_URL_EXPIRE_SECONDS,
+        )
+    except Exception as e:
+        logger.error(f"Photo link signing failed: {type(e).__name__}")
+        return None
 
 
 def new_key(prefix: str, file_name: str) -> str:

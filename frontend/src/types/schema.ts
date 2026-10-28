@@ -377,6 +377,7 @@ export interface CreateJoinerRequest {
   date_of_birth: string;
   manager_name: string;
   manager_email: string;
+  photo?: FileAttachment | null;
 }
 
 export interface CreateReportData {
@@ -416,6 +417,7 @@ export interface CreateUserRequest {
   password: string;
   role?: UserRole;
   complaints_access?: boolean;
+  photo?: FileAttachment | null;
 }
 
 export const DataSource = {
@@ -674,6 +676,7 @@ export interface JoinerListItem {
   docs_total: number;
   next_followup_at?: string | null;
   updated_at?: string | null;
+  photo_url?: string | null;
 }
 
 export interface JoinerListResponse {
@@ -764,6 +767,7 @@ export interface PersonData {
   recruiter_email?: string | null;
   role: string;
   status: string;
+  photo_url?: string | null;
 }
 
 export interface PlanInductionData {
@@ -1232,6 +1236,11 @@ export interface UpdateJoinerRequest {
   date_of_birth?: string | null;
   manager_name?: string | null;
   manager_email?: string | null;
+  photo?: FileAttachment | null;
+}
+
+export interface UpdateMyPhotoRequest {
+  photo: FileAttachment | null;
 }
 
 export interface UpdateRuleRequest {
@@ -1264,6 +1273,7 @@ export interface UpdateUserRequest {
   complaints_access?: boolean | null;
   is_active?: boolean | null;
   password?: string | null;
+  photo?: FileAttachment | null;
 }
 
 export interface UploadListData {
@@ -1291,6 +1301,8 @@ export const UploadPurpose = {
   SURVEY_EXPORT: 'survey_export',
   TRANSCRIPT: 'transcript',
   STATEMENT_OF_UNDERSTANDING: 'statement_of_understanding',
+  USER_PHOTO: 'user_photo',
+  JOINER_PHOTO: 'joiner_photo',
 } as const;
 export type UploadPurpose = (typeof UploadPurpose)[keyof typeof UploadPurpose];
 
@@ -1343,6 +1355,7 @@ export interface UserData {
   role: UserRole;
   complaints_access: boolean;
   is_active: boolean;
+  photo_url?: string | null;
   last_login_at?: string | null;
 }
 

@@ -15,6 +15,7 @@ from app.limiter import limiter
 from app.logger import get_logger
 from app.storage import service as storage
 from app.storage.schemas import (
+    PHOTO_PURPOSES,
     PresignData,
     PresignRequest,
     PresignResponse,
@@ -62,10 +63,11 @@ async def presign_upload(
 
     - **file_name**: required, the original file name
     - **mime_type**: required, must match the purpose
-    - **size**: required, bytes, up to the upload_max_mb setting
-    - **purpose**: required, one of appointment_letter, reminder_list, survey_export, transcript, statement_of_understanding
+    - **size**: required, bytes, up to the upload_max_mb setting, photos up to 5 MB
+    - **purpose**: required, one of appointment_letter, reminder_list, survey_export, transcript, statement_of_understanding, user_photo, joiner_photo
     - appointment_letter and statement_of_understanding take PDF, reminder_list takes CSV or XLSX, survey_export takes XLSX, transcript takes PDF, DOCX or TXT
-    - transcripts need restricted area access, every other purpose needs an HR admin
+    - user_photo and joiner_photo take JPG, PNG or WEBP
+    - transcripts need restricted area access, user_photo is open to every signed in HR user, every other purpose needs an HR admin
     - send the returned file_url back inside a FileAttachment
     """
     try:
@@ -74,10 +76,14 @@ async def presign_upload(
                 raise ForbiddenException(
                     "Transcripts can only be uploaded from the restricted area"
                 )
-        elif not current_user.is_admin:
+        elif data.purpose != UploadPurpose.USER_PHOTO and not current_user.is_admin:
             raise ForbiddenException("Only HR admins can upload files")
         check_type(data.purpose, data.mime_type)
-        max_bytes = (await runtime.current()).upload_max_mb * MB
+        max_bytes = (
+            settings.PHOTO_MAX_BYTES
+            if data.purpose in PHOTO_PURPOSES
+            else (await runtime.current()).upload_max_mb * MB
+        )
         if data.size > max_bytes:
             raise BadRequestException(
                 f"File is too large, the limit is {max_bytes // MB} MB"

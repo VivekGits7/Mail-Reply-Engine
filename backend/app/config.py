@@ -153,6 +153,12 @@ class Settings(BaseSettings):
     S3_PRESIGNED_URL_EXPIRE_SECONDS: int = Field(
         default=300, description="Lifetime of download and upload links"
     )
+    PHOTO_MAX_BYTES: int = Field(
+        default=5 * 1024 * 1024, description="Largest profile photo upload"
+    )
+    PHOTO_URL_EXPIRE_SECONDS: int = Field(
+        default=3600, description="Lifetime of profile photo view links"
+    )
 
     # OPENAI
     OPENAI_API_KEY: str = Field(default="", description="OpenAI API key")

@@ -23,6 +23,7 @@ class User:
         self.role = UserRole(kwargs.get("role", UserRole.HR_VIEWER.value))
         self.complaints_access: bool = kwargs.get("complaints_access", False)
         self.is_active: bool = kwargs.get("is_active", True)
+        self.photo_key: Optional[str] = kwargs.get("photo_key")
         self.last_login_at: Optional[datetime] = kwargs.get("last_login_at")
         self.created_at: Optional[datetime] = kwargs.get("created_at")
         self.updated_at: Optional[datetime] = kwargs.get("updated_at")
@@ -53,12 +54,13 @@ class User:
         password_hash: str,
         role: UserRole = UserRole.HR_VIEWER,
         complaints_access: bool = False,
+        photo_key: Optional[str] = None,
     ) -> "User":
         row = await execute_command_with_return(
             # SQL
             """
-            INSERT INTO users (user_id, name, email, password_hash, role, complaints_access)
-            VALUES ($1, $2, LOWER($3), $4, $5, $6)
+            INSERT INTO users (user_id, name, email, password_hash, role, complaints_access, photo_key)
+            VALUES ($1, $2, LOWER($3), $4, $5, $6, $7)
             RETURNING *
             """,
             uuid.uuid4(),
@@ -67,6 +69,7 @@ class User:
             password_hash,
             role.value,
             complaints_access,
+            photo_key,
         )
         return cls(**dict(row))
 
@@ -135,6 +138,14 @@ class User:
             complaints_access,
             is_active,
             password_hash,
+        )
+        self.__init__(**dict(row))
+
+    async def set_photo(self, photo_key: Optional[str]) -> None:
+        row = await execute_command_with_return(
+            "UPDATE users SET photo_key = $2, updated_at = NOW() WHERE user_id = $1 RETURNING *",
+            self.user_id,
+            photo_key,
         )
         self.__init__(**dict(row))
 

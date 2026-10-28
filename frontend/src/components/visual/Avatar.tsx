@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { cn } from '@/utils/cn';
 import { getInitials } from '@/utils/utility';
 
@@ -19,12 +20,31 @@ const SIZES = {
 
 interface AvatarProps {
   name: string;
+  src?: string | null;
   size?: keyof typeof SIZES;
   className?: string;
 }
 
-export function Avatar({ name, size = 'md', className }: AvatarProps) {
+export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
   const hue = hueFor(name);
+  // Photo links expire, so a failed load drops back to initials until a fresh link arrives.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  if (src && src !== failedSrc) {
+    return (
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        onError={() => setFailedSrc(src)}
+        className={cn(
+          'inline-block shrink-0 rounded-full object-cover ring-2 ring-card select-none',
+          SIZES[size],
+          className,
+        )}
+      />
+    );
+  }
   return (
     <span
       aria-hidden="true"

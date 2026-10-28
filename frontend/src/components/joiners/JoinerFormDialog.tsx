@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { caseKeys } from '@/components/cases/Casesapi';
@@ -19,6 +19,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { SelectField } from '@/components/common/SelectField';
 import { DateField } from '@/components/common/DateField';
+import { PhotoPicker } from '@/components/upload/PhotoPicker';
+import { NO_PHOTO_CHANGE, isPhotoChanged, resolvePhoto } from '@/components/upload/Uploadapi';
 import { fieldProps } from '@/utils/fieldProps';
 import { getErrorMessage } from '@/utils/apiError';
 import { applyServerErrors } from '@/utils/formErrors';
@@ -82,6 +84,7 @@ interface JoinerFormDialogProps {
 
 export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogProps) {
   const [open, setOpen] = useState(false);
+  const [photo, setPhoto] = useState(NO_PHOTO_CHANGE);
   const isEdit = Boolean(person);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -96,13 +99,17 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
     resolver: zodResolver(joinerSchema),
     defaultValues: person ? fromPerson(person) : EMPTY,
   });
+  const watchedName = useWatch({ control, name: 'full_name' });
 
   const save = useMutation({
     mutationFn: async (values: JoinerValues) => {
-      if (!person) return { created: await joinersApi.create(values) };
+      const uploaded = await resolvePhoto(photo, 'joiner_photo');
+      if (!person)
+        return { created: await joinersApi.create({ ...values, ...(uploaded && { photo: uploaded }) }) };
       const changes = Object.fromEntries(
         Object.keys(dirtyFields).map((key) => [key, values[key as keyof JoinerValues]]),
       ) as UpdateJoinerRequest;
+      if (isPhotoChanged(photo)) changes.photo = uploaded ?? null;
       return { updated: await joinersApi.update(person.person_id, changes) };
     },
     onSuccess: (result) => {
@@ -126,7 +133,10 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
 
   function onOpenChange(next: boolean) {
     setOpen(next);
-    if (next) reset(person ? fromPerson(person) : EMPTY);
+    if (next) {
+      reset(person ? fromPerson(person) : EMPTY);
+      setPhoto(NO_PHOTO_CHANGE);
+    }
   }
 
   return (
@@ -147,6 +157,16 @@ export function JoinerFormDialog({ trigger, person, caseId }: JoinerFormDialogPr
           onSubmit={handleSubmit((values) => save.mutate(values))}
           className="grid gap-4 sm:grid-cols-2"
         >
+          <div className="sm:col-span-2">
+            <PhotoPicker
+              name={watchedName}
+              purpose="joiner_photo"
+              currentUrl={person?.photo_url}
+              value={photo}
+              onChange={setPhoto}
+              disabled={save.isPending}
+            />
+          </div>
           <Field id="full_name" label="Full name" error={errors.full_name?.message}>
             <Input
               autoComplete="off"

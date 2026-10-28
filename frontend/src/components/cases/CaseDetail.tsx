@@ -131,7 +131,7 @@ function CaseView({ data }: { data: CaseDetailData }) {
         />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <Avatar name={person.full_name} size="xl" />
+            <Avatar name={person.full_name} src={person.photo_url} size="xl" />
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">
                 {CASE_TYPE_LABELS[caseData.case_type] ?? humanize(caseData.case_type)} case

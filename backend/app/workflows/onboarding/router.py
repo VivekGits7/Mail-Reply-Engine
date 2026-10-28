@@ -57,7 +57,7 @@ signoff_router = APIRouter(prefix="/api/cases", tags=["Joiners"])
         },
         400: {
             "model": BadRequestResponse,
-            "description": "Joining date in the past or no checklist for this category and location",
+            "description": "Joining date in the past, no checklist for this category and location, or the photo is not a valid upload",
         },
         403: {
             "model": ForbiddenResponse,
@@ -87,6 +87,7 @@ async def create_joiner(
     - **joining_date**: required, today or later
     - **date_of_birth**: required, used only by the local person check
     - **manager_name**, **manager_email**: required
+    - **photo**: optional, a FileAttachment from presign with purpose joiner_photo
     - the document request goes to the recruiter right away, within the sending window
     """
     try:
@@ -212,6 +213,10 @@ async def list_joiners(
     responses={
         **COMMON_ERROR_RESPONSES,
         200: {"model": JoinerUpdateResponse, "description": "Joiner updated"},
+        400: {
+            "model": BadRequestResponse,
+            "description": "Photo not uploaded, wrong type or not a joiner_photo upload",
+        },
         403: {
             "model": ForbiddenResponse,
             "description": "Only HR admins can edit joiners",
@@ -220,7 +225,10 @@ async def list_joiners(
             "model": NotFoundResponse,
             "description": "Joiner or open case not found",
         },
-        409: {"model": ConflictResponse, "description": "Already signed off"},
+        409: {
+            "model": ConflictResponse,
+            "description": "Already signed off, only the photo can still change",
+        },
     },
 )
 @limiter.limit("30/minute")
@@ -235,6 +243,8 @@ async def update_joiner(
 
     - **person_id**: the joiner's UUID, passed in the path
     - any field from the create request is optional here
+    - **photo**: optional, a FileAttachment from presign with purpose joiner_photo, send null to remove it
+    - a photo only change works at any stage, even after sign-off
     """
     try:
         validate_uuid((person_id, "person_id"))

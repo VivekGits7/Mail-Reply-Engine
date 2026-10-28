@@ -85,7 +85,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: '/admin/checklists', label: 'Checklists', icon: ListChecks },
       { to: '/admin/induction', label: 'Induction plans', icon: Presentation },
       { to: '/admin/holidays', label: 'Holidays', icon: CalendarDays },
-      { to: '/admin/users', label: 'Admins', icon: Users, requires: 'admin' },
+      { to: '/admin/users', label: 'Users', icon: Users, requires: 'admin' },
     ],
   },
 ];

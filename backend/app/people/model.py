@@ -46,6 +46,7 @@ class Person:
         self.joining_date: Optional[date] = kwargs.get("joining_date")
         self.last_working_day: Optional[date] = kwargs.get("last_working_day")
         self.status = PersonStatus(kwargs.get("status") or PersonStatus.ACTIVE.value)
+        self.photo_key: Optional[str] = kwargs.get("photo_key")
         self.created_by: Optional[uuid.UUID] = kwargs.get("created_by")
         self.created_at: Optional[datetime] = kwargs.get("created_at")
         self.updated_at: Optional[datetime] = kwargs.get("updated_at")
@@ -144,6 +145,39 @@ class Person:
             *self._plain(),
         )
         self.updated_at = row["updated_at"]
+
+    async def set_photo(self, photo_key: Optional[str]) -> None:
+        await execute_command(
+            "UPDATE people SET photo_key = $2, updated_at = NOW() WHERE person_id = $1",
+            self.person_id,
+            photo_key,
+        )
+        self.photo_key = photo_key
+
+    # Never overwrites a photo HR uploaded, only an empty slot or an earlier passport photo.
+    async def adopt_photo(self, photo_key: str, hr_prefix: str) -> None:
+        row = await execute_command_with_return(
+            # SQL
+            """
+            UPDATE people SET photo_key = $2, updated_at = NOW()
+            WHERE person_id = $1 AND (photo_key IS NULL OR photo_key NOT LIKE $3 || '/%')
+            RETURNING photo_key
+            """,
+            self.person_id,
+            photo_key,
+            hr_prefix,
+        )
+        if row:
+            self.photo_key = row["photo_key"]
+
+    async def release_photo(self, photo_key: str) -> None:
+        await execute_command(
+            "UPDATE people SET photo_key = NULL, updated_at = NOW() WHERE person_id = $1 AND photo_key = $2",
+            self.person_id,
+            photo_key,
+        )
+        if self.photo_key == photo_key:
+            self.photo_key = None
 
     @classmethod
     async def find_by_id(cls, person_id: uuid.UUID) -> Optional["Person"]:

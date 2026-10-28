@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Pencil, Plus, UserCheck, UserX } from 'lucide-react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { Field } from '@/components/common/Field';
 import { FilterBar } from '@/components/common/FilterBar';
@@ -41,6 +41,8 @@ import {
   type SortOrder,
 } from '@/types';
 import { Avatar } from '@/components/visual/Avatar';
+import { PhotoPicker } from '@/components/upload/PhotoPicker';
+import { NO_PHOTO_CHANGE, isPhotoChanged, resolvePhoto } from '@/components/upload/Uploadapi';
 import { Breakdown, MiniStat } from '@/components/visual/Breakdown';
 import { SelectField } from '@/components/common/SelectField';
 import { userKeys, userListQuery, usersApi } from './Usersapi';
@@ -52,7 +54,7 @@ function UserStats({ role, onRole }: { role?: string; onRole: (role: string | un
   const inactive = useQuery(userListQuery({ is_active: false, limit: 1, offset: 0 }));
   return (
     <Breakdown
-      title="Admins by role"
+      title="Users by role"
       totalLabel="People with access"
       loading={admins.isPending || viewers.isPending}
       segments={[
@@ -97,13 +99,13 @@ export default function Users() {
   return (
     <section>
       <PageHeader
-        title="Admins"
+        title="Users"
         description="Who can sign in to this dashboard. Viewers can see cases and settings, admins can also change them, and complaints access is granted to each person separately."
         actions={
           <UserForm
             trigger={
               <Button>
-                <Plus className="size-4" /> Add admin
+                <Plus className="size-4" /> Add user
               </Button>
             }
           />
@@ -111,7 +113,7 @@ export default function Users() {
       />
       <UserStats role={params.role} onRole={(role) => set({ role })} />
       <FilterBar>
-        <SearchInput label="Search admins" value={params.search} onSearch={(search) => set({ search })} />
+        <SearchInput label="Search users" value={params.search} onSearch={(search) => set({ search })} />
         <FilterSelect
           label="Role"
           value={params.role}
@@ -146,14 +148,14 @@ export default function Users() {
       ) : users.isError ? (
         <ErrorState error={users.error} onRetry={() => users.refetch()} />
       ) : !users.data.data.length ? (
-        <EmptyState title="No admins match" description="Try another search or role filter." />
+        <EmptyState title="No users match" description="Try another search or role filter." />
       ) : (
         <>
           <TableShell>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Admin</TableHead>
+                  <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Complaints</TableHead>
                   <TableHead>State</TableHead>
@@ -166,7 +168,7 @@ export default function Users() {
                   <TableRow key={user.user_id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar name={user.name} size="md" />
+                        <Avatar name={user.name} src={user.photo_url} size="md" />
                         <div className="min-w-0">
                           <span className="font-medium">{user.name}</span>
                           <span className="block text-xs text-muted-foreground">{user.email}</span>
@@ -208,6 +210,7 @@ export default function Users() {
 
 function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData }) {
   const [open, setOpen] = useState(false);
+  const [photo, setPhoto] = useState(NO_PHOTO_CHANGE);
   const cache = useQueryClient();
   const schema = z.object({
     name: z.string().trim().min(2, 'Enter at least two characters').max(255),
@@ -240,25 +243,31 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
     setError,
     formState: { errors },
   } = useForm<UserValues>({ resolver: zodResolver(schema), defaultValues: defaults });
+  const watchedName = useWatch({ control, name: 'name' });
   const save = useMutation({
-    mutationFn: (values: UserValues) =>
-      user
-        ? usersApi.update(user.user_id, {
-            role: values.role,
-            complaints_access: values.complaints_access,
-            is_active: values.is_active,
-            password: values.password || null,
-          })
-        : usersApi.create({
-            name: values.name,
-            email: values.email,
-            password: values.password,
-            role: values.role,
-            complaints_access: values.complaints_access,
-          } satisfies CreateUserRequest),
+    mutationFn: async (values: UserValues) => {
+      const uploaded = await resolvePhoto(photo, 'user_photo');
+      if (user) {
+        return usersApi.update(user.user_id, {
+          role: values.role,
+          complaints_access: values.complaints_access,
+          is_active: values.is_active,
+          password: values.password || null,
+          ...(isPhotoChanged(photo) && { photo: uploaded ?? null }),
+        });
+      }
+      return usersApi.create({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role: values.role,
+        complaints_access: values.complaints_access,
+        ...(uploaded && { photo: uploaded }),
+      } satisfies CreateUserRequest);
+    },
     onSuccess: () => {
       cache.invalidateQueries({ queryKey: userKeys.all });
-      showToast.success(user ? 'Admin updated' : 'Admin created');
+      showToast.success(user ? 'User updated' : 'User created');
       setOpen(false);
     },
     onError: (error) => {
@@ -270,15 +279,20 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) reset(defaults);
+        if (next) {
+          reset(defaults);
+          setPhoto(NO_PHOTO_CHANGE);
+        }
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{user ? 'Edit admin' : 'Add admin'}</DialogTitle>
+          <DialogTitle>{user ? 'Edit user' : 'Add user'}</DialogTitle>
           <DialogDescription>
-            {user ? 'Change role, access or password.' : 'Create a dashboard login for an HR colleague.'}
+            {user
+              ? 'Change role, access, password or photo.'
+              : 'Create a dashboard login for an HR colleague.'}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -287,6 +301,14 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
           className="space-y-4"
           onSubmit={handleSubmit((values) => save.mutate(values))}
         >
+          <PhotoPicker
+            name={watchedName}
+            purpose="user_photo"
+            currentUrl={user?.photo_url}
+            value={photo}
+            onChange={setPhoto}
+            disabled={save.isPending}
+          />
           <Field id="user-name" label="Name" error={errors.name?.message}>
             <Input
               {...fieldProps('user-name', errors.name?.message)}
@@ -347,7 +369,7 @@ function UserForm({ trigger, user }: { trigger: React.ReactNode; user?: UserData
         </form>
         <DialogFooter>
           <Button form="user-form" type="submit" disabled={save.isPending}>
-            {save.isPending ? 'Saving…' : 'Save admin'}
+            {save.isPending ? 'Saving…' : 'Save user'}
           </Button>
         </DialogFooter>
       </DialogContent>

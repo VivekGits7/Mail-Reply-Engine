@@ -42,6 +42,14 @@ from app.mail import Attachment, Email, Outbound, html_list, html_table
 from app.people import HireCategory, Person, PersonRole
 from app.privacy.encryption import blind_index
 from app.runtime.clock import utcnow
+from app.storage import (
+    IMAGE_TYPES,
+    UploadPurpose,
+    photo_url,
+    replace_photo,
+    upload_prefix,
+    verify_upload,
+)
 from app.storage import service as storage
 from app.worker import (
     ScheduledJob,
@@ -124,6 +132,8 @@ async def create_joiner(
         raise BadRequestException(
             "No document checklist is set up for this hire category and location"
         )
+    if data.photo:
+        await verify_upload(data.photo, UploadPurpose.JOINER_PHOTO)
     person = await Person(
         full_name=data.full_name,
         personal_email=str(data.personal_email),
@@ -137,6 +147,8 @@ async def create_joiner(
         location=data.location,
         joining_date=data.joining_date,
     ).insert(created_by=user.user_id)
+    if data.photo:
+        await person.set_photo(data.photo.file_url)
     case = await Case.create(
         CaseType.ONBOARDING,
         person.person_id,
@@ -156,7 +168,7 @@ async def create_joiner(
         case_id=case.case_id,
         entity_type="person",
         entity_id=person.person_id,
-        details={"documents": len(items)},
+        details={"documents": len(items), "has_photo": bool(data.photo)},
     )
     await start_email(
         DOC_REQUEST, case_id=case.case_id, task_id=task.task_id, chase=_doc_chase()
@@ -243,6 +255,7 @@ async def list_joiners(
                 "updated_at": row["updated_at"].isoformat()
                 if row["updated_at"]
                 else None,
+                "photo_url": photo_url(person.photo_key),
             }
         )
     return result, total
@@ -253,23 +266,31 @@ async def update_joiner(
 ) -> Tuple[Person, int]:
     person = await _person(person_id)
     case = await Case.find_active(person.person_id, CaseType.ONBOARDING)
-    if not case:
-        raise NotFoundException("This joiner has no open onboarding case")
-    if (
-        case.stage not in DOC_STAGES
-        and case.stage != OnboardingStage.READY_FOR_SIGNOFF.value
-    ):
-        raise ConflictException("This joiner is already signed off")
-    changes = data.model_dump(exclude_unset=True)
-    for field, value in changes.items():
-        setattr(
-            person,
-            field,
-            str(value).lower() if field.endswith("email") and value else value,
-        )
-    await person.save()
+    changes = data.model_dump(exclude_unset=True, exclude={"photo"})
+    photo_sent = "photo" in data.model_fields_set
+    # A photo can change at any stage, the other details lock once the joiner is signed off.
+    if changes or not photo_sent:
+        if not case:
+            raise NotFoundException("This joiner has no open onboarding case")
+        if (
+            case.stage not in DOC_STAGES
+            and case.stage != OnboardingStage.READY_FOR_SIGNOFF.value
+        ):
+            raise ConflictException("This joiner is already signed off")
+    if data.photo:
+        await verify_upload(data.photo, UploadPurpose.JOINER_PHOTO)
+    if changes or not photo_sent:
+        for field, value in changes.items():
+            setattr(
+                person,
+                field,
+                str(value).lower() if field.endswith("email") and value else value,
+            )
+        await person.save()
+    if photo_sent:
+        await replace_photo(person, data.photo, UploadPurpose.JOINER_PHOTO)
     rechecked = 0
-    if {"full_name", "date_of_birth"} & set(changes):
+    if case and {"full_name", "date_of_birth"} & set(changes):
         for attachment in await Attachment.for_case(case.case_id, ["email_document"]):
             if (
                 attachment.storage_key
@@ -287,10 +308,10 @@ async def update_joiner(
     await log_user_action(
         user.user_id,
         "joiner_updated",
-        case_id=case.case_id,
+        case_id=case.case_id if case else None,
         entity_type="person",
         entity_id=person.person_id,
-        details={"fields": sorted(changes)},
+        details={"fields": sorted([*changes, *(["photo"] if photo_sent else [])])},
     )
     return person, rechecked
 
@@ -338,6 +359,7 @@ async def override_checklist(
         notes=data.note,
         verified_by=user.user_id,
     )
+    await _sync_passport_photo(case, item)
     if data.status == ChecklistStatus.VERIFIED and not [
         i
         for i in await ChecklistItem.for_case(case.case_id)
@@ -477,6 +499,26 @@ async def handle_documents(
     return len(stored)
 
 
+async def _use_passport_photo(person: Person, attachment: Attachment) -> None:
+    if attachment.storage_key and attachment.mime_type.lower() in IMAGE_TYPES:
+        await person.adopt_photo(
+            attachment.storage_key, upload_prefix(UploadPurpose.JOINER_PHOTO)
+        )
+
+
+async def _sync_passport_photo(case: Case, item: ChecklistItem) -> None:
+    if item.check_mode != CheckMode.PHOTO or not item.attachment_id:
+        return
+    attachment = await Attachment.find_by_id(item.attachment_id)
+    if not attachment or not attachment.storage_key:
+        return
+    person = await _person(case.person_id)
+    if item.status in (ChecklistStatus.RECEIVED, ChecklistStatus.VERIFIED):
+        await _use_passport_photo(person, attachment)
+    else:
+        await person.release_photo(attachment.storage_key)
+
+
 async def _link(
     item: ChecklistItem,
     attachment: Attachment,
@@ -518,6 +560,7 @@ async def check_attachment(attachment_id: uuid.UUID) -> None:
             attachment.file_name, attachment.mime_type, 0
         ):
             await _link(photo_item, attachment, ChecklistStatus.RECEIVED)
+            await _use_passport_photo(person, attachment)
             await attachment.record_check(
                 check_status="processed", document_type_guess=photo_item.document_type
             )
@@ -539,6 +582,7 @@ async def check_attachment(attachment_id: uuid.UUID) -> None:
         attachment.file_name, attachment.mime_type, document.chars
     ):
         await _link(photo_item, attachment, ChecklistStatus.RECEIVED)
+        await _use_passport_photo(person, attachment)
         await attachment.record_check(
             check_status="processed",
             document_type_guess=photo_item.document_type,

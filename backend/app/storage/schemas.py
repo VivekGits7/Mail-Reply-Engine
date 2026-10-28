@@ -12,6 +12,8 @@ class UploadPurpose(str, Enum):
     SURVEY_EXPORT = "survey_export"
     TRANSCRIPT = "transcript"
     STATEMENT_OF_UNDERSTANDING = "statement_of_understanding"
+    USER_PHOTO = "user_photo"
+    JOINER_PHOTO = "joiner_photo"
 
 
 PDF = "application/pdf"
@@ -19,6 +21,9 @@ CSV = "text/csv"
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 TXT = "text/plain"
+IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+PHOTO_PURPOSES = {UploadPurpose.USER_PHOTO, UploadPurpose.JOINER_PHOTO}
 
 ALLOWED_TYPES: Dict[UploadPurpose, set[str]] = {
     UploadPurpose.APPOINTMENT_LETTER: {PDF},
@@ -26,6 +31,8 @@ ALLOWED_TYPES: Dict[UploadPurpose, set[str]] = {
     UploadPurpose.REMINDER_LIST: {CSV, XLSX},
     UploadPurpose.SURVEY_EXPORT: {XLSX},
     UploadPurpose.TRANSCRIPT: {PDF, DOCX, TXT},
+    UploadPurpose.USER_PHOTO: IMAGE_TYPES,
+    UploadPurpose.JOINER_PHOTO: IMAGE_TYPES,
 }
 
 

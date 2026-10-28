@@ -154,7 +154,7 @@ export default function Joiners() {
                   <TableRow key={joiner.case_id}>
                     <TableCell className="max-w-72">
                       <div className="flex items-center gap-3">
-                        <Avatar name={joiner.full_name} size="md" />
+                        <Avatar name={joiner.full_name} src={joiner.photo_url} size="md" />
                         <div className="min-w-0">
                           <Link
                             to={`/cases/${joiner.case_id}`}

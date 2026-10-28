@@ -478,3 +478,101 @@ async def test_list_and_update_joiners(client, admin_headers, viewer_headers, en
     )
     _, items = await checklist(client, admin_headers, first["case_id"])
     assert items["pan_card"]["status"] == "name_mismatch"
+
+
+def joiner_photo(key: str) -> dict:
+    return {
+        "file_name": "rahul.jpg",
+        "file_url": key,
+        "mime_type": "image/jpeg",
+        "size": 3,
+    }
+
+
+async def test_joiner_photo_on_create_list_and_after_sign_off(
+    client, admin_headers, viewer_headers, env
+):
+    first = env.storage.preload("uploads/joiner_photo/first.jpg", b"one", "image/jpeg")
+    data = await create_joiner(client, admin_headers, photo=joiner_photo(first))
+    person = data["person"]
+    assert first in person["photo_url"]
+    listed = await client.get("/api/joiners", headers=viewer_headers)
+    assert first in listed.json()["data"][0]["photo_url"]
+    await env.conn.execute(
+        "UPDATE cases SET stage = 'it_requested' WHERE case_id = $1",
+        uuid.UUID(data["case_id"]),
+    )
+    locked = await client.patch(
+        f"/api/joiners/{person['person_id']}",
+        json={"full_name": "Rahul Kumar Sharma"},
+        headers=admin_headers,
+    )
+    assert locked.status_code == 409
+    second = env.storage.preload(
+        "uploads/joiner_photo/second.jpg", b"two", "image/jpeg"
+    )
+    swapped = await client.patch(
+        f"/api/joiners/{person['person_id']}",
+        json={"photo": joiner_photo(second)},
+        headers=admin_headers,
+    )
+    assert swapped.status_code == 200
+    assert second in swapped.json()["data"]["person"]["photo_url"]
+    assert first not in env.storage.files
+    case, _ = await checklist(client, admin_headers, data["case_id"])
+    assert second in case["person"]["photo_url"]
+    removed = await client.patch(
+        f"/api/joiners/{person['person_id']}",
+        json={"photo": None},
+        headers=admin_headers,
+    )
+    assert removed.json()["data"]["person"]["photo_url"] is None
+    user_key = env.storage.preload("uploads/user_photo/hr.jpg", b"x", "image/jpeg")
+    wrong_purpose = await client.patch(
+        f"/api/joiners/{person['person_id']}",
+        json={"photo": joiner_photo(user_key)},
+        headers=admin_headers,
+    )
+    assert wrong_purpose.status_code == 400
+
+
+async def test_passport_photo_is_the_avatar_until_hr_uploads_one(
+    client, admin_headers, env
+):
+    await configure_runtime(document_reading_enabled=False)
+    data = await create_joiner(client, admin_headers)
+    await send_documents(env, full_document_set())
+    case, items = await checklist(client, admin_headers, data["case_id"])
+    passport_key = case["person"]["photo_url"].split("?")[0].split("test-bucket/")[1]
+    assert passport_key.startswith(f"cases/{data['case_id']}/")
+    hr_key = env.storage.preload("uploads/joiner_photo/hr.jpg", b"hr", "image/jpeg")
+    await client.patch(
+        f"/api/joiners/{data['person']['person_id']}",
+        json={"photo": joiner_photo(hr_key)},
+        headers=admin_headers,
+    )
+    assert passport_key in env.storage.files
+    await client.patch(
+        f"/api/cases/{data['case_id']}/checklist/{items['passport_photo']['checklist_item_id']}",
+        json={"status": "verified"},
+        headers=admin_headers,
+    )
+    case, _ = await checklist(client, admin_headers, data["case_id"])
+    assert hr_key in case["person"]["photo_url"]
+
+
+async def test_rejected_passport_photo_stops_being_the_avatar(
+    client, admin_headers, env
+):
+    await configure_runtime(document_reading_enabled=False)
+    data = await create_joiner(client, admin_headers)
+    await send_documents(env, full_document_set())
+    case, items = await checklist(client, admin_headers, data["case_id"])
+    assert case["person"]["photo_url"]
+    await client.patch(
+        f"/api/cases/{data['case_id']}/checklist/{items['passport_photo']['checklist_item_id']}",
+        json={"status": "wrong_type", "note": "Not a passport photo"},
+        headers=admin_headers,
+    )
+    case, _ = await checklist(client, admin_headers, data["case_id"])
+    assert case["person"]["photo_url"] is None

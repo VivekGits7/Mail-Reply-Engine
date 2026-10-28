@@ -677,7 +677,7 @@ async def action_log(
     current_user: User = Depends(get_current_user),
 ) -> ActionLogListResponse:
     """
-    Search the log of every action by the agent, the system and admins.
+    Search the log of every action by the agent, the system and users.
 
     - **case_id**: optional, a case UUID
     - **actor_type**: optional, agent, user or system

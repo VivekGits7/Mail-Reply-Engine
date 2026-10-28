@@ -216,8 +216,8 @@ class SettingItem(BaseModel):
     )
     updated_by: str | None = Field(
         default=None,
-        description="Name of the admin who last changed it",
-        examples=["TCG Admin"],
+        description="Name of the user who last changed it",
+        examples=["TCG HR"],
     )
     updated_at: str | None = Field(
         default=None,
@@ -231,7 +231,7 @@ SETTINGS_LIST_EXAMPLE = [
         "key": "followup_gap_hours",
         "value": 48,
         "description": "Hours between follow-ups",
-        "updated_by": "TCG Admin",
+        "updated_by": "TCG HR",
         "updated_at": "2026-10-20T10:00:00+05:30",
     }
 ]

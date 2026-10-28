@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS people (
     joining_date DATE,
     last_working_day DATE,
     status VARCHAR(16) NOT NULL DEFAULT 'active',
+    photo_key VARCHAR(512),
     created_by UUID REFERENCES users (user_id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
