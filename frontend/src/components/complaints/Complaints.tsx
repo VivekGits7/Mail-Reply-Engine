@@ -26,7 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SelectField } from '@/components/common/SelectField';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { getErrorMessage } from '@/utils/apiError';
 import { showToast } from '@/utils/toast';
 import { formatDate, humanize } from '@/utils/utility';

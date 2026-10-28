@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { SelectField } from '@/components/common/SelectField';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { getErrorMessage } from '@/utils/apiError';

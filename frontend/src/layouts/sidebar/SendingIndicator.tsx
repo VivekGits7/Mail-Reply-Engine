@@ -5,9 +5,10 @@ import { SENDING_MODE_ICONS, SENDING_MODE_LABELS, TONE_SQUARE } from '@/componen
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/utils/cn';
 import type { SendingSummary } from '@/utils/systemState';
+import { sectionHref } from './navItems';
 import { useSendingAlert } from './useNav';
 
-const CONTROLS_PATH = '/admin/controls';
+const CONTROLS_PATH = sectionHref('/admin/controls');
 
 function actionLabel(alert: SendingSummary) {
   return alert.mode === 'held' ? 'Set test inbox' : 'Open controls';

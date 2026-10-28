@@ -8,7 +8,7 @@ import { SearchInput } from '@/components/common/SearchInput';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { TableShell } from '@/components/common/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { formatDate } from '@/utils/utility';
 import { templatesQuery } from './Adminapi';
 

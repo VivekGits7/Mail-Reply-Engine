@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/Query
 import { SearchInput } from '@/components/common/SearchInput';
 import { TableShell } from '@/components/common/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { ACTOR_LABELS, labelFrom } from '@/utils/labels';
 import { formatDateTime, humanize } from '@/utils/utility';
 import { ActorType, type ActorType as Actor, type SortOrder } from '@/types';

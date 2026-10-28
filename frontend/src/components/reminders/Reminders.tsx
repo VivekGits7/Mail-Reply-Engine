@@ -12,7 +12,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Breakdown, MiniStat } from '@/components/visual/Breakdown';
 import { TONE_STYLES, type VisualTone } from '@/components/visual/tones';
 import { Button } from '@/components/ui/button';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { cn } from '@/utils/cn';

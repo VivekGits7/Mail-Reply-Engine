@@ -60,7 +60,7 @@ export function SendingStatus({ status, failedCount, showControlsLink, className
         </div>
         {showControlsLink && (
           <Link
-            to="/admin/controls"
+            to="/#admin-controls"
             aria-label="Open controls"
             className="flex size-10 shrink-0 items-center justify-center pill rounded-full transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
@@ -94,7 +94,7 @@ export function SendingStatus({ status, failedCount, showControlsLink, className
               <>
                 {failedCount === 1 ? '1 item' : `${failedCount} items`} failed after every retry.{' '}
                 <Link
-                  to="/admin/failures"
+                  to="/#admin-failures"
                   className="font-medium text-foreground underline underline-offset-3"
                 >
                   See why

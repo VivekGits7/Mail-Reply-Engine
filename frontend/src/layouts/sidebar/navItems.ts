@@ -106,3 +106,13 @@ export function activeItem(pathname: string): NavItem | undefined {
 export function activeGroup(pathname: string): NavGroup {
   return NAV_GROUPS.find((group) => group.items.some((item) => matches(item, pathname))) ?? NAV_GROUPS[0];
 }
+
+// Every nav item now points at a section on the single dashboard page instead
+// of its own route, addressed by this id (e.g. "/admin/activity" -> "admin-activity").
+export function sectionId(to: string): string {
+  return to === '/' ? 'overview' : to.replace(/^\//, '').replace(/\//g, '-');
+}
+
+export function sectionHref(to: string): string {
+  return `/#${sectionId(to)}`;
+}

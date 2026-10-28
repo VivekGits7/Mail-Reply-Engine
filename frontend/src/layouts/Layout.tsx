@@ -5,7 +5,6 @@ import { AnimatedOutlet } from '@/components/animated/AnimatedOutlet';
 import { ErrorFallback } from '@/components/error/ErrorFallback';
 import { preloadPages, whenIdle } from '@/components/pages';
 import { Header } from './header/Header';
-import { Sidebar } from './sidebar/Sidebar';
 
 export default function Layout() {
   const location = useLocation();
@@ -23,16 +22,13 @@ export default function Layout() {
       >
         Skip to content
       </a>
-      <div className="flex w-full gap-4 p-2 sm:p-3 lg:p-4">
-        <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <Header />
-          <main id="main-content" className="w-full flex-1 px-1 pt-2 pb-12 sm:px-2">
-            <ErrorBoundary FallbackComponent={ErrorFallback} resetKeys={[location.pathname]}>
-              <AnimatedOutlet />
-            </ErrorBoundary>
-          </main>
-        </div>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 p-2 sm:p-3 lg:p-4">
+        <Header />
+        <main id="main-content" className="w-full flex-1 px-1 pt-2 pb-12 sm:px-2">
+          <ErrorBoundary FallbackComponent={ErrorFallback} resetKeys={[location.pathname]}>
+            <AnimatedOutlet />
+          </ErrorBoundary>
+        </main>
       </div>
     </div>
   );

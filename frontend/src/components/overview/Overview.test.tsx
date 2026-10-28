@@ -76,10 +76,7 @@ describe('Overview', () => {
       '/approvals/approval-1',
     );
     expect(screen.getByRole('link', { name: /TCG User/ })).toHaveAttribute('href', '/cases/case-1');
-    expect(screen.getByRole('link', { name: /Ready for sign-off/ })).toHaveAttribute(
-      'href',
-      '/joiners?stage=ready_for_signoff',
-    );
+    expect(screen.getByRole('link', { name: /Ready for sign-off/ })).toHaveAttribute('href', '/#joiners');
     expect(screen.queryByText(/No joiners yet/)).not.toBeInTheDocument();
   });
 
@@ -87,10 +84,10 @@ describe('Overview', () => {
     renderWithProviders(<Overview />);
     const setup = await screen.findByRole('region', { name: 'Finish setup before the agent emails anyone' });
     expect(within(setup).getByText('0 of 3 done')).toBeInTheDocument();
-    expect(within(setup).getByRole('link', { name: 'Set test inbox' })).toHaveAttribute('href', '/admin/controls');
+    expect(within(setup).getByRole('link', { name: 'Set test inbox' })).toHaveAttribute('href', '/#admin-controls');
     expect(within(setup).getByRole('link', { name: 'Add addresses' })).toHaveAttribute(
       'href',
-      '/admin/settings#teams-and-integrations',
+      '/#teams-and-integrations',
     );
     expect(within(setup).getByText(/2 of 2 addresses are empty/)).toBeInTheDocument();
     expect(within(setup).getByRole('button', { name: 'Add joiner' })).toBeInTheDocument();
@@ -100,7 +97,7 @@ describe('Overview', () => {
     renderWithProviders(<Overview />);
     expect(await screen.findByRole('heading', { name: 'Every email is on hold' })).toBeInTheDocument();
     expect(screen.getByText('Checked every 2 minutes')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'See why' })).toHaveAttribute('href', '/admin/failures');
+    expect(screen.getByRole('link', { name: 'See why' })).toHaveAttribute('href', '/#admin-failures');
   });
 
   it('hides the setup list once every step is done', async () => {

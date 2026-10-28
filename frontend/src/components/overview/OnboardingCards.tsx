@@ -20,7 +20,7 @@ interface OnboardingCardsProps {
 export function OnboardingCards({ items, loading, error, onRetry }: OnboardingCardsProps) {
   return (
     <section aria-labelledby="onboarding-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
-      <SectionHeading id="onboarding-title" title="Onboarding" to="/joiners" />
+      <SectionHeading id="onboarding-title" title="Onboarding" to="/#joiners" />
       {loading ? (
         <div className="grid grid-cols-2 gap-2">
           {Array.from({ length: 4 }, (_, index) => (

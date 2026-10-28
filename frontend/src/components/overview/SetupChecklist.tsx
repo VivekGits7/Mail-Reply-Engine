@@ -41,7 +41,7 @@ export function SetupChecklist({
           ? 'Dry run is on, so every email goes to a test inbox instead of real people. Until one is set, every email is on hold.'
           : 'Dry run is off. Set a test inbox so you can switch back to test mode before trying new templates.',
       action: (
-        <StepLink to="/admin/controls" primary={current === 'test_inbox'}>
+        <StepLink to="/#admin-controls" primary={current === 'test_inbox'}>
           {isAdmin ? 'Set test inbox' : 'View controls'}
         </StepLink>
       ),
@@ -52,7 +52,7 @@ export function SetupChecklist({
         ? 'Every team address is set.'
         : `The agent sends requests to IT, Finance, Admin and the onboarding group. ${missingContacts} of ${totalContacts} addresses are empty, and emails to an empty one are skipped.`,
       action: (
-        <StepLink to="/admin/settings#teams-and-integrations" primary={current === 'contacts'}>
+        <StepLink to="/#teams-and-integrations" primary={current === 'contacts'}>
           {isAdmin ? 'Add addresses' : 'View addresses'}
         </StepLink>
       ),
@@ -72,7 +72,7 @@ export function SetupChecklist({
           }
         />
       ) : (
-        <StepLink to="/joiners" primary={false}>
+        <StepLink to="/#joiners" primary={false}>
           View joiners
         </StepLink>
       ),

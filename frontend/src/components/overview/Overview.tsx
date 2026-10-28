@@ -99,7 +99,7 @@ export default function Overview() {
         className="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
         <StatTile
-          to="/approvals"
+          to="/#approvals"
           title="Drafts to review"
           hint="AI-written replies and induction plans"
           icon={ClipboardCheck}
@@ -110,7 +110,7 @@ export default function Overview() {
           visual={<AvatarStack names={draftPeople} max={3} size="sm" />}
         />
         <StatTile
-          to="/joiners?stage=ready_for_signoff"
+          to="/#joiners"
           title="Ready for sign-off"
           hint="Joiners with every document verified"
           icon={FileSignature}
@@ -132,7 +132,7 @@ export default function Overview() {
           }
         />
         <StatTile
-          to="/exits?stage=all_cleared"
+          to="/#exits"
           title="Ready for release"
           hint="Exits where every team has cleared"
           icon={PackageCheck}
@@ -154,7 +154,7 @@ export default function Overview() {
           }
         />
         <StatTile
-          to="/admin/failures"
+          to="/#admin-failures"
           title="Failed work"
           hint="Work that ran out of retries"
           icon={ShieldAlert}

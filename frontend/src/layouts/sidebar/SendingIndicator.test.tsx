@@ -24,7 +24,7 @@ describe('SendingRailIndicator', () => {
 
     await userEvent.setup().click(await screen.findByRole('button', { name: /^Dry run\./ }));
     expect(await screen.findByText(/every email goes to hr-test@tcgdigital.com/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open controls' })).toHaveAttribute('href', '/admin/controls');
+    expect(screen.getByRole('link', { name: 'Open controls' })).toHaveAttribute('href', '/#admin-controls');
   });
 
   it('points to the test inbox when every email is on hold', async () => {
@@ -32,7 +32,7 @@ describe('SendingRailIndicator', () => {
     renderWithProviders(<SendingRailIndicator />);
 
     await userEvent.setup().click(await screen.findByRole('button', { name: /^On hold\./ }));
-    expect(screen.getByRole('link', { name: 'Set test inbox' })).toHaveAttribute('href', '/admin/controls');
+    expect(screen.getByRole('link', { name: 'Set test inbox' })).toHaveAttribute('href', '/#admin-controls');
   });
 
   it('stays hidden while emails go to real people', async () => {
@@ -51,7 +51,7 @@ describe('SendingMenuIndicator', () => {
 
     expect(await screen.findByRole('link', { name: /Sending is stopped/ })).toHaveAttribute(
       'href',
-      '/admin/controls',
+      '/#admin-controls',
     );
   });
 });

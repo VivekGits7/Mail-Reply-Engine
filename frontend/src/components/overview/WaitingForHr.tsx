@@ -22,7 +22,7 @@ interface WaitingForHrProps {
 export function WaitingForHr({ items, loading, error, onRetry }: WaitingForHrProps) {
   return (
     <section aria-labelledby="waiting-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
-      <SectionHeading id="waiting-title" title="Waiting for HR" to="/approvals" />
+      <SectionHeading id="waiting-title" title="Waiting for HR" to="/#approvals" />
       {loading ? (
         <div className="space-y-2">
           <Skeleton className="h-36 w-full rounded-3xl" />

@@ -10,7 +10,7 @@ import { SortSelect, type SortOption } from '@/components/common/SortSelect';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { TableShell } from '@/components/common/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { optionsFrom, statusLabel } from '@/utils/labels';
 import { formatRelative } from '@/utils/utility';
 import { ApprovalStatus, ApprovalType, type SortOrder } from '@/types';

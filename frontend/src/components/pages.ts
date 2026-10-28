@@ -2,6 +2,7 @@ export const PAGES = {
   layout: () => import('@/layouts/Layout'),
   login: () => import('@/components/auth/LoginPage'),
   landing: () => import('@/components/landing/Landing'),
+  dashboard: () => import('@/components/dashboard/Dashboard'),
   overview: () => import('@/components/overview/Overview'),
   joiners: () => import('@/components/joiners/Joiners'),
   exits: () => import('@/components/exits/Exits'),

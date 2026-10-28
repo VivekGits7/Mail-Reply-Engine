@@ -1,13 +1,11 @@
-import { lazy, Suspense } from 'react';
-import { Bell, Menu, Plus } from 'lucide-react';
-import { Link, useLocation } from 'react-router';
+import { Bell, Menu } from 'lucide-react';
+import { Link } from 'react-router';
 import { setSidebarOpen } from '@/redux/appSlice';
-import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { SendingMenuIndicator } from '@/layouts/sidebar/SendingIndicator';
 import { BrandMark, SidebarNav } from '@/layouts/sidebar/Sidebar';
+import { sectionHref } from '@/layouts/sidebar/navItems';
 import { useNavCounts, useSendingAlert } from '@/layouts/sidebar/useNav';
-import { activeGroup } from '@/layouts/sidebar/navItems';
 import { ThemeMenu } from '@/components/common/ThemeMenu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -19,29 +17,11 @@ import { UserMenu } from './UserMenu';
 const ROUND_BUTTON =
   'pill flex size-11 shrink-0 items-center justify-center rounded-full text-foreground/80 transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none';
 
-const JoinerFormDialog = lazy(() =>
-  import('@/components/joiners/JoinerFormDialog').then((module) => ({ default: module.JoinerFormDialog })),
-);
-
-function AddJoinerButton() {
-  const trigger = (
-    <Button variant="outline" size="lg" className="hidden md:inline-flex">
-      <Plus aria-hidden="true" />
-      Add joiner
-    </Button>
-  );
-  return (
-    <Suspense fallback={trigger}>
-      <JoinerFormDialog trigger={trigger} />
-    </Suspense>
-  );
-}
-
 function ApprovalsBell() {
   const { approvals } = useNavCounts();
   return (
     <Link
-      to="/approvals"
+      to={sectionHref('/approvals')}
       className={cn(ROUND_BUTTON, 'relative')}
       aria-label={approvals ? `${approvals} approvals waiting` : 'Approvals'}
     >
@@ -55,10 +35,7 @@ function ApprovalsBell() {
 
 export function Header() {
   const dispatch = useAppDispatch();
-  const isAdmin = useAppSelector(selectIsAdmin);
   const sidebarOpen = useAppSelector((state) => state.app.sidebarOpen);
-  const { pathname } = useLocation();
-  const inDesk = activeGroup(pathname).id === 'desk';
   const sending = useSendingAlert();
   const closeMenu = () => dispatch(setSidebarOpen(false));
 
@@ -89,7 +66,6 @@ export function Header() {
         <SectionTabs className="hidden min-w-0 flex-1 lg:block" />
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <QuickSearch />
-          {isAdmin && inDesk && pathname !== '/joiners' && <AddJoinerButton />}
           <ThemeMenu className={ROUND_BUTTON} />
           <ApprovalsBell />
           <UserMenu />

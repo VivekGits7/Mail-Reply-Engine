@@ -120,7 +120,7 @@ function ApprovalView({ approval }: { approval: Approval }) {
     onSuccess: (res) => {
       refresh();
       showToast.success(res.message);
-      navigate('/approvals');
+      navigate('/#approvals');
     },
     onError,
   });
@@ -128,7 +128,7 @@ function ApprovalView({ approval }: { approval: Approval }) {
   return (
     <article>
       <Link
-        to="/approvals"
+        to="/#approvals"
         className="mb-4 inline-flex h-9 items-center gap-1.5 pill px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
@@ -351,7 +351,7 @@ function RejectDialog({ approvalId, onDone }: { approvalId: string; onDone: () =
       onDone();
       setOpen(false);
       showToast.success(res.message);
-      navigate('/approvals');
+      navigate('/#approvals');
     },
     onError: (error) => showToast.error(getErrorMessage(error)),
   });

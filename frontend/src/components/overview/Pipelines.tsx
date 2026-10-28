@@ -83,7 +83,7 @@ export function ClearancePanel() {
 
   return (
     <section aria-labelledby="clearance-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
-      <SectionHeading id="clearance-title" title="Exit clearances" to="/exits" />
+      <SectionHeading id="clearance-title" title="Exit clearances" to="/#exits" />
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">Open exits</p>

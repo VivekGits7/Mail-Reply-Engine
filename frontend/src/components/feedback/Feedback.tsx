@@ -28,7 +28,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SelectField } from '@/components/common/SelectField';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { getErrorMessage } from '@/utils/apiError';
@@ -156,10 +156,7 @@ export default function Feedback() {
                     {surveys.data.data.map((item) => (
                       <TableRow key={item.survey_response_id}>
                         <TableCell>
-                          <Link
-                            to={`/joiners?search=${encodeURIComponent(item.full_name)}`}
-                            className="font-medium hover:text-primary hover:underline"
-                          >
+                          <Link to="/#joiners" className="font-medium hover:text-primary hover:underline">
                             {item.full_name}
                           </Link>
                           <span className="block text-xs text-muted-foreground">{item.form_variant}</span>

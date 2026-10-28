@@ -16,7 +16,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { TableShell } from '@/components/common/TableShell';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { TEAM_LABELS, optionsFrom } from '@/utils/labels';
 import { formatDate, formatRelative } from '@/utils/utility';
 import { ClearanceTeam, ExitStage, type ExitSortBy, type SortOrder } from '@/types';

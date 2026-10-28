@@ -57,7 +57,7 @@ export default function ReminderRule() {
         title="Rule not found"
         action={
           <Button asChild variant="outline">
-            <Link to="/reminders">Back to reminders</Link>
+            <Link to="/#reminders">Back to reminders</Link>
           </Button>
         }
       />
@@ -65,7 +65,7 @@ export default function ReminderRule() {
   return (
     <section>
       <Link
-        to="/reminders"
+        to="/#reminders"
         className="mb-4 inline-flex h-9 items-center gap-1.5 pill px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Reminders

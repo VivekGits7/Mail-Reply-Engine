@@ -489,7 +489,7 @@ function Closing({ cta, signedIn }: { cta: { to: string; label: string }; signed
           <PrimaryCta to={cta.to} label={cta.label} />
           {signedIn && (
             <Button asChild size="lg" variant="outline">
-              <Link to="/approvals">Review approvals</Link>
+              <Link to="/#approvals">Review approvals</Link>
             </Button>
           )}
         </div>

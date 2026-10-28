@@ -1,6 +1,6 @@
-import axios from 'axios';
-import axiosInstance from '@/redux/axios';
-import type { FileAttachment, PresignData, PresignResponse, UploadPurpose } from '@/types';
+// import axios from 'axios';
+// import axiosInstance from '@/redux/axios';
+import type { FileAttachment, PresignData, UploadPurpose } from '@/types';
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
@@ -43,24 +43,37 @@ export function mimeTypeOf(file: File): string {
 }
 
 export const uploadApi = {
-  presign: async (file: File, purpose: UploadPurpose) => {
-    const { data } = await axiosInstance.post<PresignResponse>('/api/uploads/presign', {
-      file_name: file.name,
-      mime_type: mimeTypeOf(file),
-      size: file.size,
-      purpose,
-    });
-    return data.data;
-  },
-  // Storage gets a plain axios call: the shared instance would attach our API baseURL and bearer token.
-  send: async (presigned: PresignData, file: File, onProgress: (percent: number) => void) => {
-    const form = new FormData();
-    Object.entries(presigned.fields).forEach(([key, value]) => form.append(key, value));
-    form.append('file', file);
-    await axios.post(presigned.upload_url, form, {
-      onUploadProgress: (event) =>
-        onProgress(event.total ? Math.round((event.loaded / event.total) * 100) : 0),
-    });
+  // --- Original backend-connected implementation (commented out, see dummy.md) ---
+  // presign: async (file: File, purpose: UploadPurpose) => {
+  //   const { data } = await axiosInstance.post<PresignResponse>('/api/uploads/presign', {
+  //     file_name: file.name,
+  //     mime_type: mimeTypeOf(file),
+  //     size: file.size,
+  //     purpose,
+  //   });
+  //   return data.data;
+  // },
+  // // Storage gets a plain axios call: the shared instance would attach our API baseURL and bearer token.
+  // send: async (presigned: PresignData, file: File, onProgress: (percent: number) => void) => {
+  //   const form = new FormData();
+  //   Object.entries(presigned.fields).forEach(([key, value]) => form.append(key, value));
+  //   form.append('file', file);
+  //   await axios.post(presigned.upload_url, form, {
+  //     onUploadProgress: (event) =>
+  //       onProgress(event.total ? Math.round((event.loaded / event.total) * 100) : 0),
+  //   });
+  // },
+
+  // --- DUMMY implementation ---
+  // Uses an in-browser object URL as the "file_url" so previews (e.g. photo pickers) still work offline.
+  presign: async (file: File, _purpose: UploadPurpose): Promise<PresignData> => ({
+    upload_url: 'about:blank',
+    fields: {},
+    file_url: URL.createObjectURL(file),
+    expires_in: 3600,
+  }),
+  send: async (_presigned: PresignData, _file: File, onProgress: (percent: number) => void) => {
+    onProgress(100);
   },
 };
 

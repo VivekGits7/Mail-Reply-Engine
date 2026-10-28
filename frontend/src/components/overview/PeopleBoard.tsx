@@ -158,7 +158,7 @@ export function PeopleBoard() {
       <SectionHeading
         id="board-title"
         title="Joining and leaving"
-        to="/joiners?sort_by=joining_date&sort_order=oldest"
+        to="/#joiners"
         actions={
           <span className="hidden h-9 items-center gap-2 pill px-3.5 text-sm md:inline-flex">
             <CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />

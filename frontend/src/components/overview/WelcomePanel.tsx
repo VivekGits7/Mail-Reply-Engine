@@ -42,11 +42,11 @@ export function WelcomePanel() {
             }
           />
         )}
-        <Link to="/exits" className={CHIP}>
+        <Link to="/#exits" className={CHIP}>
           <DoorOpen className="size-4 text-muted-foreground" aria-hidden="true" />
           Exits
         </Link>
-        <Link to="/approvals" className={CHIP}>
+        <Link to="/#approvals" className={CHIP}>
           <ClipboardCheck className="size-4 text-muted-foreground" aria-hidden="true" />
           Review drafts
         </Link>

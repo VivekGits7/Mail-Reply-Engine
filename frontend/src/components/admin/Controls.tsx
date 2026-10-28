@@ -330,7 +330,7 @@ function SystemDetails({ status }: { status: StatusData }) {
       </dl>
       <p className="mt-4 text-sm text-muted-foreground">
         Document reading and D365 are switched in{' '}
-        <Link to="/admin/settings" className="font-medium text-foreground underline underline-offset-3">
+        <Link to="/#admin-settings" className="font-medium text-foreground underline underline-offset-3">
           Settings
         </Link>
         .

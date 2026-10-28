@@ -29,7 +29,7 @@ export default function TemplateEditor() {
         description="The link may be old, or the template key changed."
         action={
           <Button asChild variant="outline">
-            <Link to="/admin/templates">Back to email templates</Link>
+            <Link to="/#admin-templates">Back to email templates</Link>
           </Button>
         }
       />
@@ -70,7 +70,7 @@ function Editor({ template }: { template: TemplateData }) {
   return (
     <section>
       <Link
-        to="/admin/templates"
+        to="/#admin-templates"
         className="mb-4 inline-flex h-9 items-center gap-1.5 pill px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" /> Email templates

@@ -27,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { fieldProps } from '@/utils/fieldProps';
-import { useUrlState } from '@/hooks/useUrlState';
+import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { getErrorMessage } from '@/utils/apiError';
 import { applyServerErrors } from '@/utils/formErrors';
 import { showToast } from '@/utils/toast';
