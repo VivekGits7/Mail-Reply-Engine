@@ -21,7 +21,6 @@ import { approvalListQuery } from './Approvalsapi';
 
 const TYPE_LABELS: Record<string, string> = { reply: 'Reply draft', induction_schedule: 'Induction plan' };
 
-// Sample rows shown only when there isn't enough real data yet, so the table preview doesn't look empty.
 const PLACEHOLDER_APPROVALS: Partial<ApprovalListItem>[] = [
   {
     approval_id: 'sample-pending',

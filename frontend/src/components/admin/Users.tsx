@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Pencil, Plus, X } from 'lucide-react';
+import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { Field } from '@/components/common/Field';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
 import { HelpPopover } from '@/components/common/HelpPopover';
@@ -45,6 +46,8 @@ import { Avatar } from '@/components/visual/Avatar';
 import { PhotoPicker } from '@/components/upload/PhotoPicker';
 import { NO_PHOTO_CHANGE, isPhotoChanged, resolvePhoto } from '@/components/upload/Uploadapi';
 import { SelectField } from '@/components/common/SelectField';
+import { selectUser } from '@/redux/authSlice';
+import { useAppSelector } from '@/redux/hooks';
 import { userKeys, userListQuery, usersApi } from './Usersapi';
 
 const USERS_HELP = [
@@ -63,6 +66,7 @@ const USERS_HELP = [
 ];
 
 export default function Users() {
+  const currentUser = useAppSelector(selectUser);
   const { get, set, page } = useUrlState();
   const params = {
     ...page,
@@ -149,7 +153,7 @@ export default function Users() {
                   <TableHead>Complaints</TableHead>
                   <TableHead>State</TableHead>
                   <TableHead>Last login</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead className="w-40 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -170,15 +174,18 @@ export default function Users() {
                       <StatusBadge value={user.is_active ? 'active' : 'inactive'} />
                     </TableCell>
                     <TableCell>{formatDate(user.last_login_at)}</TableCell>
-                    <TableCell>
-                      <UserForm
-                        user={user}
-                        trigger={
-                          <Button variant="ghost" size="sm">
-                            <Pencil className="size-4" /> Edit
-                          </Button>
-                        }
-                      />
+                    <TableCell className="w-40">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                        <UserForm
+                          user={user}
+                          trigger={
+                            <Button variant="ghost" size="sm">
+                              <Pencil className="size-4" /> Edit
+                            </Button>
+                          }
+                        />
+                        <DeleteUser user={user} disabled={user.user_id === currentUser?.user_id} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -194,6 +201,40 @@ export default function Users() {
         </>
       )}
     </section>
+  );
+}
+
+function DeleteUser({ user, disabled }: { user: UserData; disabled: boolean }) {
+  const cache = useQueryClient();
+  const remove = useMutation({
+    mutationFn: () => usersApi.remove(user.user_id),
+    onSuccess: () => {
+      cache.invalidateQueries({ queryKey: userKeys.all });
+      showToast.success('User deleted');
+    },
+    onError: (error) => showToast.error(getErrorMessage(error)),
+  });
+
+  return (
+    <ConfirmDialog
+      title="Delete this user?"
+      description={`${user.name} will lose access to HR Desk. This cannot be undone.`}
+      confirmLabel="Delete user"
+      destructive
+      onConfirm={() => remove.mutate()}
+      trigger={
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0"
+          aria-label={disabled ? 'You cannot delete your own account' : `Delete ${user.name}`}
+          title={disabled ? 'You cannot delete your own account' : 'Delete user'}
+          disabled={disabled || remove.isPending}
+        >
+          <Trash2 className="size-4 text-destructive" aria-hidden="true" />
+        </Button>
+      }
+    />
   );
 }
 

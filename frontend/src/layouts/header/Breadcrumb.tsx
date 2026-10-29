@@ -14,7 +14,7 @@ export function Breadcrumb({ className }: { className?: string }) {
   const crumbs = ['HR Desk', group?.label, item?.label].filter((value): value is string => Boolean(value));
 
   return (
-    <nav aria-label="Breadcrumb" className={cn('min-w-0', className)}>
+    <nav aria-label="Breadcrumb" className={cn('min-w-0 px-1', className)}>
       <ol className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
         {crumbs.map((crumb, index) => (
           <li key={crumb} className="flex items-center gap-1.5">

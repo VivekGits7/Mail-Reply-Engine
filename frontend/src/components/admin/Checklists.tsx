@@ -23,6 +23,7 @@ import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { getErrorMessage } from '@/utils/apiError';
+import { cn } from '@/utils/cn';
 import { HIRE_CATEGORY_LABELS, documentLabel, optionsFrom } from '@/utils/labels';
 import { showToast } from '@/utils/toast';
 import { CheckMode, HireCategory, type ChecklistGroup, type ChecklistItemIn } from '@/types';
@@ -92,7 +93,7 @@ export default function Checklists() {
           }
         />
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className={cn('grid gap-5', list.data.length > 1 && 'xl:grid-cols-2')}>
           {list.data.map((group) => (
             <ChecklistEditor
               key={`${group.hire_category}:${group.location}:${group.updated_at ?? ''}`}
@@ -227,13 +228,19 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
         <span className="text-xs text-muted-foreground">{items.length} documents</span>
       </div>
       <div className="space-y-3">
+        <div className="hidden border-b border-border/70 pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:grid sm:grid-cols-[minmax(0,1fr)_10rem_7rem_2.75rem] sm:gap-3">
+          <span>Document</span>
+          <span>Check</span>
+          <span>Required</span>
+          {isAdmin && <span className="sr-only">Actions</span>}
+        </div>
         {items.map((item, index) => (
           <div
             key={index}
-            className="grid gap-2 border-b pb-3 sm:grid-cols-[minmax(0,1fr)_7rem_6rem_auto] sm:items-center"
+            className="grid gap-2 border-b pb-3 sm:grid-cols-[minmax(0,1fr)_10rem_7rem_2.75rem] sm:items-start sm:gap-3"
           >
             <label className="text-xs text-muted-foreground">
-              Document
+              <span className="sm:sr-only">Document</span>
               <Input
                 value={item.document_type}
                 onChange={(event) => change(index, { document_type: event.target.value })}
@@ -245,7 +252,7 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
               )}
             </label>
             <label className="text-xs text-muted-foreground">
-              Check
+              <span className="sm:sr-only">Check</span>
               <SelectField
                 className="w-full sm:w-full"
                 value={item.check_mode ?? CheckMode.TEXT}
@@ -257,7 +264,7 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
                 ]}
               />
             </label>
-            <label className="flex items-center gap-2 text-xs">
+            <label className="flex min-h-10 items-center gap-2 text-xs">
               <input
                 type="checkbox"
                 checked={item.is_mandatory ?? true}
@@ -271,6 +278,7 @@ function ChecklistEditor({ group }: { group: ChecklistGroup }) {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
+                className="self-start"
                 aria-label={`Remove ${item.document_type}`}
                 onClick={() => setItems((current) => current.filter((_, position) => position !== index))}
               >

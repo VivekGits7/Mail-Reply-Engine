@@ -414,3 +414,45 @@ async def update_user(
     except Exception as e:
         logger.error(f"Update user error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@users_router.delete(
+    "/{user_id}",
+    response_model=EmptyResponse,
+    summary="Delete a user",
+    responses={
+        **COMMON_ERROR_RESPONSES,
+        200: {"model": EmptyResponse, "description": "User deleted"},
+        400: {"model": BadRequestResponse, "description": "Cannot delete yourself or the last active HR admin"},
+        403: {"model": ForbiddenResponse, "description": "Only HR admins can delete users"},
+        404: {"model": NotFoundResponse, "description": "User not found"},
+    },
+)
+@limiter.limit("10/minute")
+async def delete_user(
+    request: Request, user_id: str, current_user: User = Depends(require_admin)
+) -> EmptyResponse:
+    """Delete an HR dashboard user while preserving related audit records."""
+    try:
+        validate_uuid((user_id, "user_id"))
+        user = await User.find_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+        if user.user_id == current_user.user_id:
+            raise BadRequestException("You can't delete your own account")
+        if user.is_admin and user.is_active and await User.active_admin_count() <= 1:
+            raise BadRequestException("At least one active HR admin is needed")
+        await user.delete()
+        await log_user_action(
+            current_user.user_id,
+            "user_deleted",
+            entity_type="user",
+            entity_id=user.user_id,
+            details={"role": user.role.value},
+        )
+        return EmptyResponse(success=True, message="User deleted successfully")
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"Delete user error: {type(e).__name__}")
+        raise HTTPException(status_code=500, detail="Internal server error")

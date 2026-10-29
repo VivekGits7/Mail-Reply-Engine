@@ -155,6 +155,9 @@ class User:
             self.user_id,
         )
 
+    async def delete(self) -> None:
+        await execute_command("DELETE FROM users WHERE user_id = $1", self.user_id)
+
     def to_dict(self) -> dict:
         return {
             "user_id": str(self.user_id),

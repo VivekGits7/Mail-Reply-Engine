@@ -70,6 +70,7 @@ export const usersApi = {
   // create: async (payload: CreateUserRequest) => (await axiosInstance.post<UserResponse>('/api/users', payload)).data,
   // update: async (userId: string, payload: UpdateUserRequest) =>
   //   (await axiosInstance.patch<UserResponse>(`/api/users/${userId}`, payload)).data,
+  // remove: async (userId: string) => (await axiosInstance.delete(`/api/users/${userId}`)).data,
 
   // --- DUMMY implementation ---
   list: async (params: UserListParams): Promise<UserListResponse> => {
@@ -130,6 +131,11 @@ export const usersApi = {
       photo_url: payload.photo?.file_url ?? DUMMY_USERS[0].photo_url,
     },
   }),
+  remove: async (userId: string): Promise<{ success: true; message: string }> => {
+    const index = DUMMY_USERS.findIndex((user) => user.user_id === userId);
+    if (index >= 0) DUMMY_USERS.splice(index, 1);
+    return { success: true, message: 'Dummy user deleted (backend disconnected)' };
+  },
 };
 
 export const userKeys = {
