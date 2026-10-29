@@ -1,8 +1,0 @@
-{
-  "venvPath": "/Users/vivek/.global-venv",
-  "venv": ".venv",
-  "pythonVersion": "3.11",
-  "include": ["backend"],
-  "exclude": ["**/node_modules", "**/__pycache__", "frontend", "backend/logs"],
-  "executionEnvironments": [{ "root": "backend" }],
-}
