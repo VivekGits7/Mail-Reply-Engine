@@ -200,7 +200,7 @@ function CaseView({ data }: { data: CaseDetailData }) {
                 <span className="text-right text-xs leading-tight text-muted-foreground">
                   Documents
                   <span className="block text-sm font-medium text-foreground tabular-nums">
-                    {verifiedCount}/{data.checklist.length} verified
+                    {verifiedCount} out of {data.checklist.length} verified
                   </span>
                 </span>
                 <RadialProgress

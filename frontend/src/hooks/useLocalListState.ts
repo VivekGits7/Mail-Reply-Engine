@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export const DEFAULT_PAGE_SIZE = 25;
+export const DEFAULT_PAGE_SIZE = 10;
 
 // Same shape as useUrlState, but backed by local state instead of the URL's
 // search params. Every section on the merged single-page dashboard shares one

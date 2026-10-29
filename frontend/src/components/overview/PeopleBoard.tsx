@@ -113,7 +113,7 @@ export function PeopleBoard() {
           kind: 'join',
           tone,
           label: 'Joins',
-          detail: `${item.docs_verified ?? 0}/${item.docs_total ?? 0} docs`,
+          detail: `${item.docs_verified ?? 0} out of ${item.docs_total ?? 0} documents`,
           pill: atRisk ? 'At risk' : ready ? 'Ready' : started ? 'Collecting' : 'Not started',
         };
       }),

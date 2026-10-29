@@ -35,23 +35,6 @@ export interface RuleTaskParams extends PageParams {
 // --- DUMMY DATA (backend disconnected, see dummy.md) ---
 const DUMMY_RULES: RuleData[] = [
   {
-    reminder_rule_id: 'rule_dummy_001',
-    name: 'Leave approval reminder',
-    rule_key: 'leave_approval',
-    data_source: 'upload',
-    recipient_field: 'manager_email',
-    required_columns: ['full_name', 'manager_email'],
-    template_key: 'leave_approval',
-    stages: [{ stage: 'open', recipient_field: 'manager_email', template_key: 'leave_approval' }],
-    schedule_cron: '0 9 * * *',
-    followup_gap_hours: 48,
-    max_rounds: 3,
-    escalate_to_email: null,
-    is_active: true,
-    next_run_at: new Date().toISOString(),
-    open_tasks: 1,
-  },
-  {
     reminder_rule_id: 'rule_sample_appraisal',
     name: 'Appraisal feedback reminder',
     rule_key: 'appraisal_feedback',
@@ -71,23 +54,6 @@ const DUMMY_RULES: RuleData[] = [
     is_active: true,
     next_run_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     open_tasks: 2,
-  },
-  {
-    reminder_rule_id: 'rule_sample_timesheet',
-    name: 'Work hours reminder',
-    rule_key: 'timesheet_pending',
-    data_source: 'upload',
-    recipient_field: 'work_email',
-    required_columns: ['full_name', 'work_email'],
-    template_key: 'timesheet_pending',
-    stages: [{ stage: 'open', recipient_field: 'work_email', template_key: 'timesheet_pending' }],
-    schedule_cron: '0 9 * * *',
-    followup_gap_hours: 48,
-    max_rounds: 3,
-    escalate_to_email: null,
-    is_active: false,
-    next_run_at: null,
-    open_tasks: 0,
   },
 ];
 

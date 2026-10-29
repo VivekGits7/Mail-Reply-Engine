@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router';
 
-export const DEFAULT_PAGE_SIZE = 25;
+export const DEFAULT_PAGE_SIZE = 10;
 
 export function useUrlState() {
   const [params, setParams] = useSearchParams();

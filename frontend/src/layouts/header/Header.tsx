@@ -19,7 +19,7 @@ export function Header() {
   const closeMenu = () => dispatch(setSidebarOpen(false));
 
   return (
-    <header className="sticky top-2 z-30 flex flex-col gap-2 rounded-[2rem] glass p-2 lg:top-4 lg:flex-row lg:items-center lg:p-2.5">
+    <header className="sticky top-2 z-30 flex flex-col gap-2 rounded-[2rem] glass p-2 sm:px-3 lg:top-4 lg:h-16 lg:flex-row lg:items-center lg:px-4 lg:py-2">
       <div className="flex items-center gap-2 lg:contents">
         <div className="flex items-center gap-2 lg:hidden">
           <Button
