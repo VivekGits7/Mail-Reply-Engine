@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 from typing import Optional
 
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.auth.model import User
@@ -104,6 +105,9 @@ async def create_joiner(
         )
     except (HTTPException, AppException):
         raise
+    except asyncpg.UndefinedColumnError as e:
+        logger.error("Create joiner database schema mismatch: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
     except Exception as e:
         logger.error(f"Create joiner error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")

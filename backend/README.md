@@ -1,6 +1,6 @@
 # Mail Reply Engine API
 
-HR email agent for TCG. It reads `HROperations@tcgdigital.com` through Microsoft Graph, classifies every email on masked text, runs the onboarding, exit, reminder, feedback and induction workflows, and sends replies through Graph or SMTP. HR stays in control on the dashboard. The full design is in `../plan.md`.
+HR email agent for TCG. It reads `HROperations@tcgdigital.com` through Microsoft Graph, classifies every email on masked text, runs the onboarding, exit, reminder, feedback and induction workflows, and sends replies through Microsoft Graph. HR stays in control on the dashboard. The full design is in `../plan.md`.
 
 ## Setup
 
@@ -9,7 +9,6 @@ HR email agent for TCG. It reads `HROperations@tcgdigital.com` through Microsoft
    - `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`: the "HR Automation" app registration
    - `GRAPH_CLIENT_SECRET`: the secret Value, not the Secret ID. It expires on 2027-10-13.
    - `GRAPH_MAILBOX`: `HROperations@tcgdigital.com`
-   - `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`: only used when `MAIL_SEND_PROVIDER=smtp`
    - The mailbox password is not needed, the app signs in with its own secret.
 3. Check the mailbox values without starting the API:
 
@@ -35,8 +34,7 @@ Swagger is at `http://localhost:8000/docs` outside production.
 - Graph reads the inbox. A new mailbox starts from now, so older inbox mail is never processed.
 - New mail arrives through the Graph webhook when `GRAPH_WEBHOOK_BASE_URL` is a public HTTPS URL, otherwise through a delta poll every 2 minutes.
 - `EVENT_DISPATCH_MODE=inline` runs events, the mailbox poll and due follow-ups inside the API, which suits local runs. `celery` needs Redis plus the worker and beat from `docker-compose.yml`.
-- `MAIL_SEND_PROVIDER=graph` is the default. It sends with the app and keeps replies in the same Outlook conversation.
-- `MAIL_SEND_PROVIDER=smtp` sends through the SMTP server with STARTTLS. Replies carry In-Reply-To and References, so they still thread. Use it when Graph sending is blocked.
+- Microsoft Graph sends all emails from `GRAPH_MAILBOX` and keeps replies in the same Outlook conversation.
 - Dry-run is on by default. Every email is held until a test inbox is set in Admin, Sending controls, and then only goes to that inbox.
 - The kill switch stops every outgoing email within one minute.
 - Induction booking needs Calendars.ReadWrite on the app. Without it, booking fails with a 502 and the session stays unbooked.

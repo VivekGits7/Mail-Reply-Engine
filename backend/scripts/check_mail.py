@@ -7,7 +7,6 @@ from typing import Optional
 # Lets `guvrun scripts/<name>.py` import app the same way `-m scripts.<name>` does.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app import smtp
 from app.config import settings
 from app.error import AppException
 from app.graph import mail as graph_mail
@@ -50,48 +49,24 @@ async def check_graph() -> bool:
     return True
 
 
-async def check_smtp() -> bool:
-    if not settings.smtp_configured:
-        print("SMTP: not configured, skipped")
-        return settings.MAIL_SEND_PROVIDER != "smtp"
-    try:
-        await smtp.check_sign_in()
-    except AppException as e:
-        print(f"SMTP: {e.detail}")
-        return False
-    print(f"SMTP: signed in to {settings.SMTP_HOST}:{settings.SMTP_PORT}")
-    return True
-
-
 async def send_test(address: str) -> bool:
-    provider = settings.MAIL_SEND_PROVIDER
     subject = f"{settings.APP_NAME} test email"
     html_body = f"<p>{TEST_TEXT}</p>"
     try:
-        if provider == "smtp":
-            await smtp.send_mail(
-                subject=subject,
-                html_body=html_body,
-                text_body=TEST_TEXT,
-                to=[address],
-                cc=[],
-            )
-        else:
-            await graph_mail.send_mail(
-                subject=subject, html_body=html_body, to=[address], cc=[]
-            )
+        await graph_mail.send_mail(
+            subject=subject, html_body=html_body, to=[address], cc=[]
+        )
     except AppException as e:
-        print(f"Send: failed through {provider}, {e.detail}")
+        print(f"Send: failed through Graph, {e.detail}")
         return False
-    print(f"Send: test email sent to {address} through {provider}")
+    print(f"Send: test email sent to {address} through Graph")
     return True
 
 
 async def run(send_to: Optional[str]) -> bool:
-    print(f"Sending through {settings.MAIL_SEND_PROVIDER}, reading through Graph")
+    print("Sending and reading through Microsoft Graph")
     try:
         ok = await check_graph()
-        ok = await check_smtp() and ok
         if send_to:
             ok = await send_test(send_to) and ok
     finally:

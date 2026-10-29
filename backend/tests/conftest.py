@@ -8,11 +8,8 @@ import base64
 import itertools
 import json
 import re
-import smtplib
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from email.message import EmailMessage
-from email.utils import getaddresses
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional
 
@@ -34,7 +31,6 @@ from app.common.enums import EmailCategory
 from app.config import settings
 from app.engine import seed_defaults, setup_engine
 from app.llm import client as llm_client
-from app.mail import service as mail_service
 from app.main import app as fastapi_app
 from app.storage import service as storage_service
 
@@ -251,7 +247,6 @@ class FakeGraph:
         self.events: List[Dict[str, Any]] = []
         self.busy: Dict[str, List[Dict[str, Any]]] = {}
         self.delta_ids: List[str] = []
-        self.copies: Dict[str, Dict[str, Any]] = {}
         self.counter = itertools.count(1)
 
     def add_message(
@@ -284,8 +279,6 @@ class FakeGraph:
             "ccRecipients": [],
             "receivedDateTime": "2026-10-20T05:30:00Z",
             "hasAttachments": bool(attachments),
-            "isDeliveryReceipt": False,
-            "isReadReceipt": False,
             "internetMessageHeaders": [
                 {"name": key, "value": value} for key, value in (headers or {}).items()
             ],
@@ -308,12 +301,6 @@ class FakeGraph:
             for index, item in enumerate(attachments or [])
         ]
         return message_id
-
-    def conversation_of(self, internet_message_id: Optional[str]) -> Optional[str]:
-        for item in [*self.messages.values(), *self.copies.values()]:
-            if item["internetMessageId"] == internet_message_id:
-                return item["conversationId"]
-        return None
 
     def to(self, address: str) -> List[Dict[str, Any]]:
         return [mail for mail in self.sent if address in mail["to"]]
@@ -440,13 +427,6 @@ class FakeGraph:
             self.events.append({"id": event_id, **payload})
             return httpx.Response(201, json={"id": event_id})
 
-        def find_message(request):
-            match = re.search(
-                r"internetMessageId eq '(.*)'$", request.url.params.get("$filter", "")
-            )
-            copy = self.copies.get(match.group(1).replace("''", "'")) if match else None
-            return httpx.Response(200, json={"value": [copy] if copy else []})
-
         def delta(request):
             ids, self.delta_ids = self.delta_ids, []
             return httpx.Response(
@@ -459,9 +439,6 @@ class FakeGraph:
 
         router.get(url__regex=rf"{base}{box}/messages/(?P<message_id>[^/?]+)$").mock(
             side_effect=get_message
-        )
-        router.get(url__regex=rf"{base}{box}/messages\?.*").mock(
-            side_effect=find_message
         )
         router.get(url__regex=rf"{base}{box}/messages/(?P<message_id>[^/?]+)\?.*").mock(
             side_effect=get_message
@@ -509,110 +486,6 @@ def graph():
     with respx.mock(assert_all_called=False, assert_all_mocked=True) as router:
         fake.install(router)
         yield fake
-
-
-def _addresses(header: Optional[str]) -> List[str]:
-    return [address for _, address in getaddresses([header or ""]) if address]
-
-
-class FakeSmtp:
-    def __init__(self, graph: FakeGraph) -> None:
-        self.graph = graph
-        self.sent: List[Dict[str, Any]] = []
-        self.connections: List[tuple[str, int]] = []
-        self.envelopes: List[tuple[str, List[str]]] = []
-        self.logins: List[str] = []
-        self.starttls = 0
-        self.keep_copy = True
-        self.connect_error: Optional[Exception] = None
-        self.login_error: Optional[Exception] = None
-
-    def to(self, address: str) -> List[Dict[str, Any]]:
-        return [mail for mail in self.sent if address in mail["to"]]
-
-    def last_to(self, address: str) -> Dict[str, Any]:
-        matches = self.to(address)
-        assert matches, f"No SMTP email was sent to {address}"
-        return matches[-1]
-
-    def record(self, message: EmailMessage) -> None:
-        number = next(self.graph.counter)
-        message_id = message["Message-ID"]
-        conversation = (
-            self.graph.conversation_of(message["In-Reply-To"]) or f"conv-smtp-{number}"
-        )
-        self.sent.append(
-            {
-                "message_id": message_id,
-                "subject": message["Subject"],
-                "from": message["From"],
-                "reply_to_header": message["Reply-To"],
-                "to": _addresses(message["To"]),
-                "cc": _addresses(message["Cc"]),
-                "in_reply_to": message["In-Reply-To"],
-                "references": message["References"],
-                "body": message.get_body(("html",)).get_content(),
-                "text": message.get_body(("plain",)).get_content(),
-                "attachments": [
-                    {
-                        "name": part.get_filename(),
-                        "content_type": part.get_content_type(),
-                        "data": part.get_content(),
-                    }
-                    for part in message.iter_attachments()
-                ],
-                "conversationId": conversation,
-            }
-        )
-        if self.keep_copy:
-            self.graph.copies[message_id] = {
-                "id": f"sent-{number}",
-                "internetMessageId": message_id,
-                "conversationId": conversation,
-            }
-
-
-@pytest.fixture
-def smtp_server(graph, monkeypatch) -> FakeSmtp:
-    fake = FakeSmtp(graph)
-
-    class Server:
-        def __init__(self, host: str, port: int, **kwargs: Any) -> None:
-            if fake.connect_error:
-                raise fake.connect_error
-            fake.connections.append((host, port))
-
-        def starttls(self, **kwargs: Any) -> None:
-            fake.starttls += 1
-
-        def login(self, user: str, password: str) -> None:
-            if fake.login_error:
-                raise fake.login_error
-            fake.logins.append(user)
-
-        def send_message(
-            self, message: EmailMessage, from_addr: str, to_addrs: List[str]
-        ) -> None:
-            fake.envelopes.append((from_addr, list(to_addrs)))
-            fake.record(message)
-
-        def noop(self) -> tuple[int, bytes]:
-            return 250, b"OK"
-
-        def close(self) -> None:
-            return None
-
-        def __enter__(self) -> "Server":
-            return self
-
-        def __exit__(self, *exc: Any) -> None:
-            self.close()
-
-    monkeypatch.setattr(smtplib, "SMTP", Server)
-    monkeypatch.setattr(smtplib, "SMTP_SSL", Server)
-    monkeypatch.setattr(settings, "MAIL_SEND_PROVIDER", "smtp")
-    monkeypatch.setattr(mail_service, "SENT_COPY_WAIT_SECONDS", 0)
-    return fake
 
 
 async def configure_runtime(**overrides: Any) -> None:

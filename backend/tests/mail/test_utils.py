@@ -40,7 +40,14 @@ def message(**overrides):
     "overrides,reason",
     [
         ({"sender": MAILBOX}, "own_mailbox"),
-        ({"isReadReceipt": True}, "receipt"),
+        (
+            {
+                "headers": {
+                    "Content-Type": "multipart/report; report-type=disposition-notification"
+                }
+            },
+            "receipt",
+        ),
         ({"sender": "mailer-daemon@outlook.com"}, "bounce"),
         ({"subject": "Undeliverable: Documents"}, "bounce"),
         ({"headers": {"Auto-Submitted": "auto-replied"}}, "auto_reply"),

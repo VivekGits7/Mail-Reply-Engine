@@ -21,8 +21,6 @@ MESSAGE_FIELDS = ",".join(
         "ccRecipients",
         "receivedDateTime",
         "hasAttachments",
-        "isDeliveryReceipt",
-        "isReadReceipt",
         "internetMessageHeaders",
         "body",
         "uniqueBody",
@@ -69,7 +67,7 @@ def parse_message(raw: Dict[str, Any]) -> GraphMessage:
         cc=_addresses(raw.get("ccRecipients")),
         received_at=_parse_time(raw.get("receivedDateTime")),
         has_attachments=bool(raw.get("hasAttachments")),
-        is_receipt=bool(raw.get("isDeliveryReceipt") or raw.get("isReadReceipt")),
+        is_receipt="disposition-notification" in headers.get("content-type", "").lower(),
         headers=headers,
         body_text=(raw.get("body") or {}).get("content") or "",
         unique_body_text=(raw.get("uniqueBody") or {}).get("content") or "",
@@ -84,27 +82,6 @@ async def get_message(message_id: str) -> GraphMessage:
         prefer=TEXT_BODY_PREFER,
     )
     return parse_message(response.json())
-
-
-async def find_by_internet_id(internet_message_id: str) -> Optional[SentMail]:
-    quoted = internet_message_id.replace("'", "''")
-    response = await request(
-        "GET",
-        f"{mailbox_path()}/messages",
-        params={
-            "$filter": f"internetMessageId eq '{quoted}'",
-            "$select": "id,internetMessageId,conversationId",
-            "$top": "1",
-        },
-    )
-    found = response.json().get("value") or []
-    if not found:
-        return None
-    return SentMail(
-        graph_message_id=found[0]["id"],
-        internet_message_id=found[0].get("internetMessageId"),
-        conversation_id=found[0].get("conversationId"),
-    )
 
 
 def extract_mime_attachments(raw: bytes) -> List[GraphAttachment]:
@@ -273,7 +250,7 @@ async def send_mail(
             "toRecipients": _recipients(to),
             "ccRecipients": _recipients(cc),
         }
-        # Replies keep the thread subject so Gmail and Outlook keep them in one conversation.
+        # Keep the thread subject so Outlook groups replies in the same conversation.
         if subject_prefix:
             changes["subject"] = f"{subject_prefix} {draft.get('subject') or subject}"
         await request("PATCH", f"{mailbox_path()}/messages/{draft['id']}", json=changes)
