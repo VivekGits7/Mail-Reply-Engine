@@ -160,6 +160,7 @@ export interface CaseData {
   parent_case_id?: string | null;
   opened_at?: string | null;
   closed_at?: string | null;
+  last_working_day?: string | null;
 }
 
 export interface CaseDetailData {

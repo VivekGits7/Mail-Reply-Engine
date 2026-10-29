@@ -1,37 +1,16 @@
-import { Bell, Menu } from 'lucide-react';
-import { Link } from 'react-router';
+import { Menu } from 'lucide-react';
 import { setSidebarOpen } from '@/redux/appSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { SendingMenuIndicator } from '@/layouts/sidebar/SendingIndicator';
 import { BrandMark, SidebarNav } from '@/layouts/sidebar/Sidebar';
-import { sectionHref } from '@/layouts/sidebar/navItems';
-import { useNavCounts, useSendingAlert } from '@/layouts/sidebar/useNav';
-import { ThemeMenu } from '@/components/common/ThemeMenu';
+import { useSendingAlert } from '@/layouts/sidebar/useNav';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/utils/cn';
+import { Breadcrumb } from './Breadcrumb';
 import { QuickSearch } from './QuickSearch';
 import { SectionTabs } from './SectionTabs';
 import { UserMenu } from './UserMenu';
-
-const ROUND_BUTTON =
-  'pill flex size-11 shrink-0 items-center justify-center rounded-full text-foreground/80 transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none';
-
-function ApprovalsBell() {
-  const { approvals } = useNavCounts();
-  return (
-    <Link
-      to={sectionHref('/approvals')}
-      className={cn(ROUND_BUTTON, 'relative')}
-      aria-label={approvals ? `${approvals} approvals waiting` : 'Approvals'}
-    >
-      <Bell className="size-4.5" aria-hidden="true" />
-      {approvals ? (
-        <span className="absolute top-2.5 right-3 size-2 rounded-full bg-ember ring-2 ring-card" />
-      ) : null}
-    </Link>
-  );
-}
 
 export function Header() {
   const dispatch = useAppDispatch();
@@ -63,11 +42,9 @@ export function Header() {
           </Button>
           <BrandMark compact />
         </div>
-        <SectionTabs className="hidden min-w-0 flex-1 lg:block" />
+        <Breadcrumb className="hidden min-w-0 flex-1 lg:block" />
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <QuickSearch />
-          <ThemeMenu className={ROUND_BUTTON} />
-          <ApprovalsBell />
           <UserMenu />
         </div>
       </div>

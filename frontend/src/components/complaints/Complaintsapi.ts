@@ -30,6 +30,22 @@ const DUMMY_COMPLAINTS: ComplaintListItem[] = [
     person_name: 'Demo Employee',
     subject: 'Dummy complaint (backend disconnected)',
   },
+  {
+    complaint_id: 'complaint_sample_exit',
+    received_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    source: 'exit_interview',
+    sender_email: null,
+    person_name: 'Sample Leaver',
+    subject: 'Exit interview transcript',
+  },
+  {
+    complaint_id: 'complaint_sample_hrconnect',
+    received_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    source: 'hr_connect',
+    sender_email: null,
+    person_name: 'Sample Employee',
+    subject: 'HR Connect call transcript',
+  },
 ];
 
 const DUMMY_COMPLAINT_DETAIL: ComplaintDetail = {
@@ -55,14 +71,32 @@ export const complaintsApi = {
   //   (await axiosInstance.post<UploadTranscriptResponse>('/api/complaints/uploads', payload)).data,
 
   // --- DUMMY implementation ---
-  list: async (_params: ComplaintListParams): Promise<ComplaintListResponse> => ({
-    success: true,
-    message: 'Dummy complaints list (backend disconnected)',
-    total: DUMMY_COMPLAINTS.length,
-    limit: 20,
-    offset: 0,
-    data: DUMMY_COMPLAINTS,
-  }),
+  list: async (params: ComplaintListParams): Promise<ComplaintListResponse> => {
+    const search = params.search?.trim().toLowerCase();
+    const filtered = DUMMY_COMPLAINTS.filter(
+      (item) =>
+        (!search ||
+          item.subject?.toLowerCase().includes(search) ||
+          item.person_name?.toLowerCase().includes(search)) &&
+        (!params.source || item.source === params.source) &&
+        (!params.date_from || item.received_at >= params.date_from) &&
+        (!params.date_to || item.received_at <= params.date_to),
+    );
+    const sorted = [...filtered].sort((a, b) => {
+      const diff = new Date(a.received_at).getTime() - new Date(b.received_at).getTime();
+      return params.sort_order === 'oldest' ? diff : -diff;
+    });
+    const limit = params.limit ?? 20;
+    const offset = params.offset ?? 0;
+    return {
+      success: true,
+      message: 'Dummy complaints list (backend disconnected)',
+      total: sorted.length,
+      limit,
+      offset,
+      data: sorted.slice(offset, offset + limit),
+    };
+  },
   detail: async (_complaintId: string): Promise<ComplaintDetail> => DUMMY_COMPLAINT_DETAIL,
   attachmentUrl: async (_attachmentId: string): Promise<DownloadUrlResponse['data']> => ({
     url: 'https://example.com/dummy-attachment.pdf',

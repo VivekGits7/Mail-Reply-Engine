@@ -77,7 +77,6 @@ function Editor({ template }: { template: TemplateData }) {
       </Link>
       <PageHeader
         title={template.name}
-        description={<span className="font-mono">{template.template_key}</span>}
         actions={
           isAdmin && (
             <Button

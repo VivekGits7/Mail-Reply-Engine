@@ -66,7 +66,7 @@ export function HolidayCalendar({ year, holidays }: { year: number; holidays: Ho
                     className={cn(
                       'flex aspect-square items-center justify-center rounded-lg tabular-nums',
                       names
-                        ? 'bg-sun font-semibold text-sun-foreground shadow-[0_6px_14px_-8px_var(--sun)]'
+                        ? 'bg-sun font-semibold text-white shadow-[0_6px_14px_-8px_var(--sun)]'
                         : weekend
                           ? 'text-muted-foreground/60'
                           : 'bg-muted/60',

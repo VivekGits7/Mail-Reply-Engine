@@ -42,6 +42,26 @@ const DUMMY_USERS: UserData[] = [
     photo_url: null,
     last_login_at: new Date().toISOString(),
   },
+  {
+    user_id: 'usr_sample_admin_inactive',
+    name: 'Sample Former Admin',
+    email: 'sample.former.admin@tcgdigital.com',
+    role: UserRole.HR_ADMIN,
+    complaints_access: false,
+    is_active: false,
+    photo_url: null,
+    last_login_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    user_id: 'usr_sample_viewer_inactive',
+    name: 'Sample Former Viewer',
+    email: 'sample.former.viewer@tcgdigital.com',
+    role: UserRole.HR_VIEWER,
+    complaints_access: false,
+    is_active: false,
+    photo_url: null,
+    last_login_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
 
 export const usersApi = {
@@ -52,14 +72,39 @@ export const usersApi = {
   //   (await axiosInstance.patch<UserResponse>(`/api/users/${userId}`, payload)).data,
 
   // --- DUMMY implementation ---
-  list: async (_params: UserListParams): Promise<UserListResponse> => ({
-    success: true,
-    message: 'Dummy users list (backend disconnected)',
-    total: DUMMY_USERS.length,
-    limit: 20,
-    offset: 0,
-    data: DUMMY_USERS,
-  }),
+  list: async (params: UserListParams): Promise<UserListResponse> => {
+    const search = params.search?.trim().toLowerCase();
+    const filtered = DUMMY_USERS.filter(
+      (user) =>
+        (!search ||
+          user.name.toLowerCase().includes(search) ||
+          user.email.toLowerCase().includes(search)) &&
+        (!params.role || user.role === params.role) &&
+        (params.is_active === undefined || user.is_active === params.is_active),
+    );
+    const sorted = [...filtered].sort((a, b) => {
+      if (params.sort_by === 'name') {
+        const diff = a.name.localeCompare(b.name);
+        return params.sort_order === 'z_to_a' ? -diff : diff;
+      }
+      if (params.sort_by === 'last_login_at') {
+        const diff = new Date(a.last_login_at ?? 0).getTime() - new Date(b.last_login_at ?? 0).getTime();
+        return params.sort_order === 'z_to_a' ? diff : -diff;
+      }
+      const diff = new Date(a.last_login_at ?? 0).getTime() - new Date(b.last_login_at ?? 0).getTime();
+      return params.sort_order === 'latest' ? -diff : diff;
+    });
+    const limit = params.limit ?? 20;
+    const offset = params.offset ?? 0;
+    return {
+      success: true,
+      message: 'Dummy users list (backend disconnected)',
+      total: sorted.length,
+      limit,
+      offset,
+      data: sorted.slice(offset, offset + limit),
+    };
+  },
   create: async (payload: CreateUserRequest): Promise<UserResponse> => ({
     success: true,
     message: 'Dummy user created (backend disconnected)',

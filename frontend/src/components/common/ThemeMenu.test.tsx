@@ -19,7 +19,7 @@ beforeAll(() => {
 });
 
 describe('ThemeMenu', () => {
-  it('offers light, dark and system and remembers the pick', async () => {
+  it('defaults to light, offers dark and system, and remembers the pick', async () => {
     const user = userEvent.setup();
     render(
       <ThemeProvider storageKey="theme-test">
@@ -27,9 +27,9 @@ describe('ThemeMenu', () => {
       </ThemeProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Theme: System' }));
-    expect(screen.getByRole('menuitemradio', { name: 'Light' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', { name: 'System' })).toHaveAttribute('aria-checked', 'true');
+    await user.click(screen.getByRole('button', { name: 'Theme: Light' }));
+    expect(screen.getByRole('menuitemradio', { name: 'System' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: 'Light' })).toHaveAttribute('aria-checked', 'true');
 
     await user.click(screen.getByRole('menuitemradio', { name: 'Dark' }));
     expect(await screen.findByRole('button', { name: 'Theme: Dark' })).toBeInTheDocument();

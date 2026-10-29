@@ -17,6 +17,7 @@ interface DateFieldProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  align?: 'start' | 'end';
   onBlur?: () => void;
   'aria-label'?: string;
   'aria-invalid'?: boolean | 'true' | 'false';
@@ -33,6 +34,7 @@ export function DateField({
   placeholder = 'dd/mm/yyyy',
   disabled,
   className,
+  align = 'start',
   onBlur,
   ...aria
 }: DateFieldProps) {
@@ -57,7 +59,7 @@ export function DateField({
             placeholder={placeholder}
             disabled={disabled}
             value={draft ?? displayDate(value)}
-            className="pr-11 tabular-nums"
+            className="pr-8 tabular-nums"
             onChange={(event) => {
               const text = event.target.value;
               setDraft(text);
@@ -82,14 +84,14 @@ export function DateField({
               type="button"
               disabled={disabled}
               aria-label="Open calendar"
-              className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none data-[state=open]:bg-primary/10 data-[state=open]:text-primary"
+              className="absolute top-1/2 right-0.5 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none data-[state=open]:bg-primary/10 data-[state=open]:text-primary"
             >
               <CalendarDays className="size-4" aria-hidden="true" />
             </button>
           </PopoverTrigger>
         </div>
       </PopoverAnchor>
-      <PopoverContent className="w-auto">
+      <PopoverContent align={align} className="w-auto">
         <Calendar value={value || undefined} min={min} max={max} onSelect={pick} onClear={() => pick('')} />
       </PopoverContent>
     </Popover>

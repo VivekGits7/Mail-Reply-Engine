@@ -76,14 +76,28 @@ export const approvalsApi = {
   //   (await axiosInstance.post<RejectResponse>(`/api/approvals/${approvalId}/reject`, { reason })).data,
 
   // --- DUMMY implementation ---
-  list: async (_params: ApprovalListParams): Promise<ApprovalListResponse> => ({
-    success: true,
-    message: 'Dummy approvals list (backend disconnected)',
-    total: DUMMY_APPROVALS.length,
-    limit: 20,
-    offset: 0,
-    data: DUMMY_APPROVALS,
-  }),
+  list: async (params: ApprovalListParams): Promise<ApprovalListResponse> => {
+    const filtered = DUMMY_APPROVALS.filter(
+      (item) =>
+        (!params.status || item.status === params.status) &&
+        (!params.approval_type || item.approval_type === params.approval_type) &&
+        (!params.case_id || item.case_id === params.case_id),
+    );
+    const sorted = [...filtered].sort((a, b) => {
+      const diff = new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
+      return params.sort_order === 'latest' ? -diff : diff;
+    });
+    const limit = params.limit ?? 20;
+    const offset = params.offset ?? 0;
+    return {
+      success: true,
+      message: 'Dummy approvals list (backend disconnected)',
+      total: sorted.length,
+      limit,
+      offset,
+      data: sorted.slice(offset, offset + limit),
+    };
+  },
   detail: async (_approvalId: string): Promise<ApprovalDetail> => DUMMY_APPROVAL_DETAIL,
   saveDraft: async (approvalId: string, draft: ApprovalDraft): Promise<ApprovalDetailResponse> => ({
     success: true,

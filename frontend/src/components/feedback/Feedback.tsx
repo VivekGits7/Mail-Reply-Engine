@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileUp, Plus } from 'lucide-react';
+import { FileUp, Plus, X } from 'lucide-react';
 import { OpenFileButton } from '@/components/cases/OpenFileButton';
 import { Link } from 'react-router';
 import { DateRange } from '@/components/common/DateRange';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/QueryState';
@@ -44,7 +45,29 @@ import {
   type SurveyStatus as SurveyStatusType,
 } from '@/types';
 import { feedbackApi, feedbackKeys, reportListQuery, surveyListQuery } from './Feedbackapi';
-import { FeedbackStats } from './FeedbackStats';
+
+const FEEDBACK_HELP = [
+  {
+    label: 'Surveys',
+    detail: 'Every 30/60/90-day survey sent to a new joiner, and whether they replied yet.',
+  },
+  {
+    label: 'Score',
+    detail: 'How the joiner rated their experience, out of 5. Low scores are flagged automatically.',
+  },
+  {
+    label: 'Flag: Needs attention',
+    detail: "Shows only joiners whose score came in below HR's threshold.",
+  },
+  {
+    label: 'Reports',
+    detail: 'A monthly AI-written summary of all responses — themes, what\'s working, what\'s not. Sent to HR as a PDF.',
+  },
+  {
+    label: 'Import responses',
+    detail: "Upload the Excel export from Microsoft Forms so responses show up here.",
+  },
+];
 
 export default function Feedback() {
   const { get, set, page } = useUrlState();
@@ -66,18 +89,41 @@ export default function Feedback() {
   };
   const surveys = useQuery({ ...surveyListQuery(params), enabled: tab === 'surveys' });
   const reports = useQuery({ ...reportListQuery(reportParams), enabled: tab === 'reports' });
+  const hasSurveyFilters = Boolean(
+    params.search ||
+      params.status ||
+      get('milestone') ||
+      get('flagged') ||
+      params.form_variant ||
+      get('sort_by') ||
+      get('sort_order'),
+  );
+  const clearSurveyFilters = () =>
+    set({
+      search: undefined,
+      status: undefined,
+      milestone: undefined,
+      flagged: undefined,
+      form_variant: undefined,
+      sort_by: undefined,
+      sort_order: undefined,
+    });
+  const hasReportFilters = Boolean(get('report_status') || get('report_order'));
+  const clearReportFilters = () => set({ report_status: undefined, report_order: undefined });
   return (
     <section>
       <PageHeader
         title="Feedback"
-        description="Track joiner surveys and review the reports sent to HR."
         actions={
-          isAdmin && (
-            <>
-              <UploadResponses />
-              <CreateReport />
-            </>
-          )
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <>
+                <UploadResponses />
+                <CreateReport />
+              </>
+            )}
+            <HelpPopover title="What these mean" items={FEEDBACK_HELP} />
+          </div>
         }
       />
       <Tabs value={tab} onValueChange={(value) => set({ tab: value === 'surveys' ? undefined : value })}>
@@ -86,10 +132,6 @@ export default function Feedback() {
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
         <TabsContent value="surveys" className="mt-5">
-          <FeedbackStats
-            flagged={params.flagged === true}
-            onFlagged={(active) => set({ flagged: active ? 'true' : undefined })}
-          />
           <FilterBar>
             <SearchInput label="Search people" value={params.search} onSearch={(search) => set({ search })} />
             <FilterSelect
@@ -129,6 +171,12 @@ export default function Feedback() {
               sortOrder={params.sort_order}
               onChange={(sort_by, sort_order) => set({ sort_by, sort_order })}
             />
+            {hasSurveyFilters && (
+              <Button variant="ghost" size="sm" onClick={clearSurveyFilters}>
+                <X aria-hidden="true" />
+                Clear filters
+              </Button>
+            )}
           </FilterBar>
           {surveys.isPending ? (
             <TableSkeleton />
@@ -198,6 +246,12 @@ export default function Feedback() {
               ]}
               onChange={(report_order) => set({ report_order })}
             />
+            {hasReportFilters && (
+              <Button variant="ghost" size="sm" onClick={clearReportFilters}>
+                <X aria-hidden="true" />
+                Clear filters
+              </Button>
+            )}
           </FilterBar>
           {reports.isPending ? (
             <TableSkeleton />

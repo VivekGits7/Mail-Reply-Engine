@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Pencil, Plus, UserCheck, UserX } from 'lucide-react';
+import { Pencil, Plus, X } from 'lucide-react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { Field } from '@/components/common/Field';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/QueryState';
@@ -43,47 +44,23 @@ import {
 import { Avatar } from '@/components/visual/Avatar';
 import { PhotoPicker } from '@/components/upload/PhotoPicker';
 import { NO_PHOTO_CHANGE, isPhotoChanged, resolvePhoto } from '@/components/upload/Uploadapi';
-import { Breakdown, MiniStat } from '@/components/visual/Breakdown';
 import { SelectField } from '@/components/common/SelectField';
 import { userKeys, userListQuery, usersApi } from './Usersapi';
 
-function UserStats({ role, onRole }: { role?: string; onRole: (role: string | undefined) => void }) {
-  const admins = useQuery(userListQuery({ role: UserRole.HR_ADMIN, limit: 1, offset: 0 }));
-  const viewers = useQuery(userListQuery({ role: UserRole.HR_VIEWER, limit: 1, offset: 0 }));
-  const active = useQuery(userListQuery({ is_active: true, limit: 1, offset: 0 }));
-  const inactive = useQuery(userListQuery({ is_active: false, limit: 1, offset: 0 }));
-  return (
-    <Breakdown
-      title="Users by role"
-      totalLabel="People with access"
-      loading={admins.isPending || viewers.isPending}
-      segments={[
-        { key: UserRole.HR_ADMIN, label: 'HR admins', tone: 'iris', value: admins.data?.total ?? 0 },
-        { key: UserRole.HR_VIEWER, label: 'HR viewers', tone: 'azure', value: viewers.data?.total ?? 0 },
-      ]}
-      active={role}
-      onSelect={onRole}
-      aside={
-        <>
-          <MiniStat
-            label="Active"
-            icon={UserCheck}
-            tone="mint"
-            value={active.data?.total}
-            loading={active.isPending}
-          />
-          <MiniStat
-            label="Deactivated"
-            icon={UserX}
-            tone="neutral"
-            value={inactive.data?.total}
-            loading={inactive.isPending}
-          />
-        </>
-      }
-    />
-  );
-}
+const USERS_HELP = [
+  {
+    label: 'HR admin',
+    detail: 'Can see everything and change it — settings, templates, approve drafts, sign off joiners.',
+  },
+  {
+    label: 'HR viewer',
+    detail: 'Can see cases and settings, but cannot change anything.',
+  },
+  {
+    label: 'Complaints access',
+    detail: "A separate permission, given to each person one by one — even an HR admin doesn't get it automatically.",
+  },
+];
 
 export default function Users() {
   const { get, set, page } = useUrlState();
@@ -96,22 +73,28 @@ export default function Users() {
     sort_order: (get('sort_order') ?? 'latest') as SortOrder,
   };
   const users = useQuery(userListQuery(params));
+  const hasFilters = Boolean(
+    params.search || params.role || get('is_active') || get('sort_by') || get('sort_order'),
+  );
+  const clearFilters = () =>
+    set({ search: undefined, role: undefined, is_active: undefined, sort_by: undefined, sort_order: undefined });
   return (
     <section>
       <PageHeader
         title="Users"
-        description="Who can sign in to this dashboard. Viewers can see cases and settings, admins can also change them, and complaints access is granted to each person separately."
         actions={
-          <UserForm
-            trigger={
-              <Button>
-                <Plus className="size-4" /> Add user
-              </Button>
-            }
-          />
+          <div className="flex items-center gap-2">
+            <UserForm
+              trigger={
+                <Button>
+                  <Plus className="size-4" /> Add user
+                </Button>
+              }
+            />
+            <HelpPopover title="What these mean" items={USERS_HELP} />
+          </div>
         }
       />
-      <UserStats role={params.role} onRole={(role) => set({ role })} />
       <FilterBar>
         <SearchInput label="Search users" value={params.search} onSearch={(search) => set({ search })} />
         <FilterSelect
@@ -142,6 +125,12 @@ export default function Users() {
           sortOrder={params.sort_order}
           onChange={(sort_by, sort_order) => set({ sort_by, sort_order })}
         />
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
       {users.isPending ? (
         <TableSkeleton />

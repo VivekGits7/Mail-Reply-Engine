@@ -12,7 +12,7 @@ export const SENDING_MODE_ICONS: Record<SendingMode, LucideIcon> = {
 export const SENDING_MODE_LABELS: Record<SendingMode, string> = {
   stopped: 'Stopped',
   held: 'On hold',
-  test: 'Dry run',
+  test: 'Test mode',
   live: 'Live',
 };
 

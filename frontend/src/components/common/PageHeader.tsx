@@ -34,6 +34,7 @@ export function PageHeader({ title, description, actions, eyebrow }: PageHeaderP
 
 interface SectionHeadingProps {
   title: string;
+  subtitle?: string;
   to?: string;
   linkLabel?: string;
   actions?: ReactNode;
@@ -43,6 +44,7 @@ interface SectionHeadingProps {
 
 export function SectionHeading({
   title,
+  subtitle,
   to,
   linkLabel = 'View all',
   actions,
@@ -50,10 +52,13 @@ export function SectionHeading({
   className,
 }: SectionHeadingProps) {
   return (
-    <div className={cn('mb-4 flex items-center justify-between gap-3', className)}>
-      <h2 id={id} className="text-xl font-normal tracking-[-0.02em]">
-        {title}
-      </h2>
+    <div className={cn('mb-4 flex items-start justify-between gap-3', className)}>
+      <div className="min-w-0">
+        <h2 id={id} className="text-xl font-normal tracking-[-0.02em]">
+          {title}
+        </h2>
+        {subtitle && <p className="mt-0.5 text-sm text-pretty text-muted-foreground">{subtitle}</p>}
+      </div>
       <div className="flex shrink-0 items-center gap-2">
         {actions}
         {to && (

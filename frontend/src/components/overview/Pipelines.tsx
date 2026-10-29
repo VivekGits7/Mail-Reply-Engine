@@ -1,19 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
-import { Info } from 'lucide-react';
 import { exitListQuery } from '@/components/exits/Exitsapi';
 import { SectionHeading } from '@/components/common/PageHeader';
-import { ColumnBars } from '@/components/visual/ColumnBars';
-import { SegmentedBar, type Segment } from '@/components/visual/SegmentedBar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TEAM_LABELS } from '@/utils/labels';
 import { ClearanceTeam, OnboardingStage } from '@/types';
 import { stageCountQuery } from './queries';
 
-const STAGES: { stage: OnboardingStage; label: string; tone: Segment['tone'] }[] = [
-  { stage: OnboardingStage.DOCS_REQUESTED, label: 'Docs requested', tone: 'azure' },
-  { stage: OnboardingStage.DOCS_IN_PROGRESS, label: 'Docs in progress', tone: 'iris' },
-  { stage: OnboardingStage.READY_FOR_SIGNOFF, label: 'Ready for sign-off', tone: 'mint' },
-  { stage: OnboardingStage.IT_REQUESTED, label: 'IT setup', tone: 'sun' },
+function plural(n: number, singular: string, plural: string) {
+  return n === 1 ? singular : plural;
+}
+
+const STAGES: { stage: OnboardingStage; sentence: (n: number) => string }[] = [
+  {
+    stage: OnboardingStage.DOCS_REQUESTED,
+    sentence: (n) =>
+      `${n} ${plural(n, 'joiner has', 'joiners have')} not sent any documents yet.`,
+  },
+  {
+    stage: OnboardingStage.DOCS_IN_PROGRESS,
+    sentence: (n) => `${n} ${plural(n, 'joiner is', 'joiners are')} partway through sending documents.`,
+  },
+  {
+    stage: OnboardingStage.READY_FOR_SIGNOFF,
+    sentence: (n) =>
+      `${n} ${plural(n, 'joiner has', 'joiners have')} sent everything and ${plural(n, 'is', 'are')} ready for you to sign off.`,
+  },
+  {
+    stage: OnboardingStage.IT_REQUESTED,
+    sentence: (n) => `${n} ${plural(n, 'joiner is', 'joiners are')} signed off, and IT is setting up their account.`,
+  },
 ];
 
 const TEAMS: ClearanceTeam[] = [
@@ -30,38 +45,37 @@ export function OnboardingPipeline() {
   const fourth = useQuery(stageCountQuery(STAGES[3].stage));
   const queries = [first, second, third, fourth];
   const loading = queries.some((query) => query.isPending);
-  const segments: Segment[] = STAGES.map((item, index) => ({
-    key: item.stage,
-    label: item.label,
-    tone: item.tone,
-    value: queries[index].data?.total ?? 0,
-  }));
-  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
-  const waitingOnDocs = segments[0].value + segments[1].value;
+  const counts = STAGES.map((item, index) => ({ ...item, value: queries[index].data?.total ?? 0 }));
+  const total = counts.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <section aria-labelledby="pipeline-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
-      <SectionHeading id="pipeline-title" title="Onboarding pipeline" />
+      <SectionHeading
+        id="pipeline-title"
+        title="Onboarding pipeline"
+        subtitle="Where each new joiner is in the document process."
+      />
       <p className="text-sm text-muted-foreground">Active joiners</p>
-      <div className="mt-1 mb-5 text-[2.5rem] leading-none font-light tracking-[-0.04em] tabular-nums">
+      <div className="mt-1 text-[2.5rem] leading-none font-light tracking-[-0.04em] tabular-nums">
         {loading ? <Skeleton className="h-10 w-16" /> : total}
       </div>
       {loading ? (
-        <Skeleton className="h-3 w-full" />
-      ) : (
-        <SegmentedBar segments={segments} label="Joiners by stage" />
-      )}
-      {!loading && total > 0 && (
-        <div className="mt-auto pt-5">
-          <p className="flex items-start gap-2.5 rounded-2xl border border-dashed px-3.5 py-3 text-xs text-pretty text-muted-foreground">
-            <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
-            <span>
-              <span className="font-medium text-foreground">{waitingOnDocs}</span> of {total} are still
-              sending documents, <span className="font-medium text-foreground">{segments[2].value}</span> can
-              be signed off now.
-            </span>
-          </p>
+        <div className="mt-4 space-y-2">
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
         </div>
+      ) : total === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">No joiners are active right now.</p>
+      ) : (
+        <ul className="mt-4 flex flex-col gap-2 text-sm text-pretty text-muted-foreground">
+          {counts
+            .filter((item) => item.value > 0)
+            .map((item) => (
+              <li key={item.stage}>{item.sentence(item.value)}</li>
+            ))}
+        </ul>
       )}
     </section>
   );
@@ -83,31 +97,37 @@ export function ClearancePanel() {
 
   return (
     <section aria-labelledby="clearance-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
-      <SectionHeading id="clearance-title" title="Exit clearances" to="/#exits" />
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Open exits</p>
-          <div className="mt-1 text-[2.5rem] leading-none font-light tracking-[-0.04em] tabular-nums">
-            {loading ? <Skeleton className="h-10 w-16" /> : openTotal}
-          </div>
-        </div>
-        <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="size-2.5 rounded-full bg-ember" />
-          Waiting on team
-        </span>
+      <SectionHeading
+        id="clearance-title"
+        title="Exit clearances"
+        subtitle="Which team still needs to clear each exit."
+        to="/#exits"
+      />
+      <p className="text-sm text-muted-foreground">Open exits</p>
+      <div className="mt-1 text-[2.5rem] leading-none font-light tracking-[-0.04em] tabular-nums">
+        {loading ? <Skeleton className="h-10 w-16" /> : openTotal}
       </div>
       {loading ? (
-        <Skeleton className="h-40 w-full rounded-2xl" />
+        <div className="mt-4 space-y-2">
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+        </div>
+      ) : openTotal === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">No exits are waiting on a team right now.</p>
       ) : (
-        <ColumnBars
-          label="Exits waiting on each team"
-          height={140}
-          groups={TEAMS.map((team, index) => ({
-            key: team,
-            label: TEAM_LABELS[team] ?? team,
-            values: [{ tone: 'ember', value: teams[index].data?.total ?? 0, label: 'waiting' }],
-          }))}
-        />
+        <ul className="mt-4 flex flex-col gap-2 text-sm text-pretty text-muted-foreground">
+          {TEAMS.map((team, index) => {
+            const count = teams[index].data?.total ?? 0;
+            if (count === 0) return null;
+            return (
+              <li key={team}>
+                {TEAM_LABELS[team] ?? team} still needs to clear {count} {plural(count, 'exit', 'exits')}.
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );

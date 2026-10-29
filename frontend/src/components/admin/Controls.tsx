@@ -1,10 +1,22 @@
 import { useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Power, Send } from 'lucide-react';
+import {
+  Activity,
+  CheckCircle2,
+  Clock,
+  Database,
+  FileSearch,
+  Inbox,
+  Mail,
+  Power,
+  Send,
+  XCircle,
+} from 'lucide-react';
 import { Link } from 'react-router';
 import { z } from 'zod';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Field } from '@/components/common/Field';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BlockSkeleton, ErrorState } from '@/components/common/QueryState';
 import { Button } from '@/components/ui/button';
@@ -18,9 +30,43 @@ import { showToast } from '@/utils/toast';
 import { formatDateTime, formatRelative } from '@/utils/utility';
 import type { StatusData } from '@/types';
 import { adminApi, adminKeys, failuresQuery, statusQuery } from './Adminapi';
-import { SendingStatus } from './SendingStatus';
+
 
 const inboxSchema = z.email();
+
+const CONTROLS_HELP = [
+  {
+    label: 'Last mailbox check',
+    detail:
+      'When the agent last looked for new emails in the mailbox. If instant notifications are on, it also gets alerts the moment a new email arrives.',
+  },
+  {
+    label: 'Last email received',
+    detail:
+      'When the last email arrived in the mailbox. Useful to confirm the agent is actively receiving emails.',
+  },
+  {
+    label: 'Queue',
+    detail:
+      '"Waiting" = new emails or HR actions not yet picked up. "Active" = agent is working on them right now. "Scheduled" = follow-ups or replies waiting to be sent at their due time.',
+  },
+  {
+    label: 'Failed',
+    detail:
+      'Emails or tasks the agent tried multiple times but could not complete. Click "See failures" to find out why and retry them.',
+  },
+  {
+    label: 'Document reading',
+    detail:
+      'When On, the agent automatically reads uploaded documents to check their type and name (e.g. PAN card, offer letter). When Off, HR checks documents manually.',
+  },
+  {
+    label: 'D365',
+    detail:
+      'When On, the agent gets employee status updates directly from Dynamics 365. When Off, data comes from this dashboard and manual uploads.',
+  },
+];
+
 
 export default function Controls() {
   const isAdmin = useAppSelector(selectIsAdmin);
@@ -31,11 +77,11 @@ export default function Controls() {
     <section>
       <PageHeader
         title="Controls"
-        description="Stop or allow sending, choose where test emails go, and check that the mailbox is connected."
+        actions={<HelpPopover title="How Controls works" items={CONTROLS_HELP} />}
       />
       {!isAdmin && (
         <p className="mb-4 rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
-          You can see the current state. Only HR admins can change these switches.
+          View only — only HR admins can change these switches.
         </p>
       )}
       {status.isPending ? (
@@ -44,12 +90,11 @@ export default function Controls() {
         <ErrorState error={status.error} onRetry={() => status.refetch()} />
       ) : (
         <div className="space-y-6">
-          <SendingStatus status={status.data} failedCount={failures.data?.total} />
           <div className="grid gap-4 md:grid-cols-2">
             <KillSwitchCard status={status.data} isAdmin={isAdmin} />
             <DryRunCard key={status.data.test_inbox} status={status.data} isAdmin={isAdmin} />
           </div>
-          <SystemDetails status={status.data} />
+          <SystemDetails status={status.data} failedCount={failures.data?.total} />
         </div>
       )}
     </section>
@@ -63,9 +108,9 @@ function useStatusRefresh() {
 
 function allowDescription(status: StatusData): string {
   if (status.dry_run && status.test_inbox)
-    return `Emails waiting in the queue go to the test inbox ${status.test_inbox}.`;
-  if (status.dry_run) return 'Dry run has no test inbox yet, so emails stay on hold until you set one.';
-  return 'Dry run is off. Emails waiting in the queue go to their real recipients right away.';
+    return `Queued emails will go to the test inbox ${status.test_inbox}.`;
+  if (status.dry_run) return 'Dry run is on but no test inbox is set — emails stay on hold.';
+  return 'Queued emails will go to their real recipients right away.';
 }
 
 function KillSwitchCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean }) {
@@ -77,9 +122,7 @@ function KillSwitchCard({ status, isAdmin }: { status: StatusData; isAdmin: bool
     onSuccess: (res) => {
       refresh();
       showToast.success(
-        res.data.kill_switch
-          ? 'Sending stopped. Nothing goes out until it is allowed again.'
-          : 'Sending allowed again',
+        res.data.kill_switch ? 'Sending stopped.' : 'Sending allowed again.',
       );
       setReason('');
     },
@@ -90,9 +133,13 @@ function KillSwitchCard({ status, isAdmin }: { status: StatusData; isAdmin: bool
     <ControlCard
       title="Kill switch"
       icon={<Power className="size-5" aria-hidden="true" />}
-      state={on ? 'On, sending is stopped' : 'Off, sending is allowed'}
-      alert={on}
-      description="Stops every outgoing email within a minute, including follow-ups and approved replies. The agent keeps reading mail, and held emails go out once sending is allowed again."
+      status={on ? 'danger' : 'success'}
+      statusLabel={on ? 'Sending stopped' : 'Sending allowed'}
+      description={
+        on
+          ? 'All outgoing emails are paused. The agent still reads mail and queues replies.'
+          : 'Outgoing emails are delivered normally. Toggle to pause everything instantly.'
+      }
     >
       {isAdmin && (
         <div className="space-y-3">
@@ -102,7 +149,7 @@ function KillSwitchCard({ status, isAdmin }: { status: StatusData; isAdmin: bool
               value={reason}
               maxLength={300}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Wrong template went out…"
+              placeholder="e.g. Wrong template went out…"
             />
           </Field>
           <ConfirmDialog
@@ -110,7 +157,7 @@ function KillSwitchCard({ status, isAdmin }: { status: StatusData; isAdmin: bool
             description={
               on
                 ? allowDescription(status)
-                : 'Every email, follow-up and approved reply waits until sending is allowed again. Incoming mail is still read.'
+                : 'Every email and follow-up will wait. Incoming mail is still read and processed.'
             }
             confirmLabel={on ? 'Allow sending' : 'Stop sending'}
             destructive={!on}
@@ -139,8 +186,8 @@ function DryRunCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean 
       refresh();
       showToast.success(
         res.data.dry_run
-          ? `Dry run on. Test emails go to ${res.data.test_inbox}.`
-          : 'Dry run off. Emails now go to their real recipients.',
+          ? `Test mode on — emails go to ${res.data.test_inbox}.`
+          : 'Live mode on — emails go to real recipients.',
       );
     },
     onError: (reason) => showToast.error(getErrorMessage(reason)),
@@ -149,33 +196,37 @@ function DryRunCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean 
   function saveInbox(event: React.FormEvent) {
     event.preventDefault();
     if (!inboxSchema.safeParse(trimmed).success) {
-      setError('Enter an email address like hr-test@tcgdigital.com');
+      setError('Enter a valid email like hr-test@tcgdigital.com');
       return;
     }
     setError('');
     dry.mutate({ enabled: true, test_inbox: trimmed });
   }
 
-  const state = !status.dry_run
-    ? 'Off, emails go to real people'
-    : status.test_inbox
-      ? `On, test emails go to ${status.test_inbox}`
-      : 'On, but no test inbox is set';
+  const statusLabel = !status.dry_run
+    ? 'Live — real recipients'
+    : held
+      ? 'Test — no inbox set'
+      : `Test → ${status.test_inbox}`;
+
+  const description = !status.dry_run
+    ? 'Emails go to candidates, recruiters, and teams. Switch to test mode while checking templates.'
+    : 'All emails go to the test inbox instead of real people. Safe for checking templates.';
 
   return (
     <ControlCard
       title="Dry run"
       icon={<Send className="size-5" aria-hidden="true" />}
-      state={state}
-      alert={!status.dry_run || held}
-      description="While dry run is on, every email goes to the test inbox instead of candidates, recruiters and teams. The subject line shows who it was meant for. Keep it on until the templates and team addresses are checked."
+      status={!status.dry_run ? 'warning' : held ? 'danger' : 'info'}
+      statusLabel={statusLabel}
+      description={description}
     >
       {held && (
         <p
           role="alert"
           className="mb-3 rounded-2xl border border-destructive/20 bg-destructive/8 px-4 py-3 text-sm text-destructive"
         >
-          No test inbox is set, so every email is on hold. Add one below to start test sending.
+          No test inbox set — add one below to start sending.
         </p>
       )}
       {isAdmin && (
@@ -184,14 +235,14 @@ function DryRunCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean 
             id="test-inbox"
             label="Test inbox"
             error={error}
-            hint="A mailbox your team reads, used only for test emails"
+            hint="Your team's test mailbox"
           >
             <Input
               type="email"
               autoComplete="email"
               spellCheck={false}
               autoCapitalize="none"
-              placeholder="hr-test@tcgdigital.com…"
+              placeholder="hr-test@tcgdigital.com"
               value={inbox}
               onChange={(event) => setInbox(event.target.value)}
               {...fieldProps('test-inbox', error)}
@@ -208,25 +259,25 @@ function DryRunCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean 
                   {dry.isPending ? 'Saving…' : 'Save test inbox'}
                 </Button>
                 <ConfirmDialog
-                  title="Send to real recipients?"
-                  description={`Candidates, recruiters and teams will get the agent's emails directly, including anything waiting in the queue. Only do this once the templates and team addresses are checked.${
+                  title="Switch to real recipients?"
+                  description={`Emails will go directly to candidates, recruiters and teams. Only do this once templates are verified.${
                     status.kill_switch
                       ? ' The kill switch is on, so nothing goes out until sending is allowed.'
                       : ''
                   }`}
-                  confirmLabel="Switch to real recipients"
+                  confirmLabel="Switch to live"
                   destructive
                   onConfirm={() => dry.mutate({ enabled: false, test_inbox: null })}
                   trigger={
                     <Button type="button" variant="outline" disabled={dry.isPending}>
-                      Switch to real recipients
+                      Switch to live
                     </Button>
                   }
                 />
               </>
             ) : (
               <Button type="submit" disabled={dry.isPending || !trimmed}>
-                {dry.isPending ? 'Updating…' : 'Turn dry run back on'}
+                {dry.isPending ? 'Updating…' : 'Enable test mode'}
               </Button>
             )}
           </div>
@@ -239,112 +290,146 @@ function DryRunCard({ status, isAdmin }: { status: StatusData; isAdmin: boolean 
 function ControlCard({
   title,
   icon,
-  state,
+  status,
+  statusLabel,
   description,
-  alert,
   children,
 }: {
   title: string;
   icon: ReactNode;
-  state: string;
+  status: 'success' | 'danger' | 'warning' | 'info';
+  statusLabel: string;
   description: string;
-  alert: boolean;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
+  const statusStyles = {
+    success: 'bg-success/10 text-success',
+    danger: 'bg-destructive/10 text-destructive',
+    warning: 'bg-sun/10 text-sun-foreground',
+    info: 'bg-primary/10 text-primary',
+  };
+
+  const dotStyles = {
+    success: 'bg-success',
+    danger: 'bg-destructive',
+    warning: 'bg-sun',
+    info: 'bg-primary',
+  };
+
   return (
-    <section className="flex flex-col panel p-6">
-      <div className="mb-3 flex items-center gap-2 text-muted-foreground">
-        {icon}
-        <h2 className="text-lg font-normal tracking-tight text-foreground">{title}</h2>
+    <section className="flex flex-col panel p-5 sm:p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className={cn('flex size-9 items-center justify-center rounded-xl', statusStyles[status])}>
+            {icon}
+          </span>
+          <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
+        </div>
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium', statusStyles[status])}>
+          <span className={cn('size-1.5 rounded-full', dotStyles[status])} />
+          {statusLabel}
+        </span>
       </div>
-      <p className={cn('flex items-start gap-2 font-medium break-words', alert && 'text-warning')}>
-        {alert && <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
-        <span className="min-w-0">{state}</span>
-      </p>
-      <p className="my-3 text-sm text-pretty text-muted-foreground">{description}</p>
+      <p className="mb-4 text-sm text-muted-foreground">{description}</p>
       {children}
     </section>
   );
 }
 
-function SystemDetails({ status }: { status: StatusData }) {
+function MetricBadge({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  icon: typeof Inbox;
+  label: string;
+  value: string | number;
+  hint?: string;
+  tone?: 'success' | 'warning' | 'danger' | 'muted';
+}) {
+  const toneClass = {
+    success: 'text-success',
+    warning: 'text-sun-foreground',
+    danger: 'text-destructive',
+    muted: 'text-muted-foreground',
+  }[tone ?? 'muted'];
+
+  return (
+    <div className="flex flex-col gap-1 rounded-2xl border border-border/60 bg-card/80 px-4 py-3.5">
+      <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+        {label}
+      </dt>
+      <dd className={cn('text-sm font-semibold tabular-nums', toneClass)}>{value}</dd>
+      {hint && <dd className="text-[0.68rem] leading-snug text-muted-foreground">{hint}</dd>}
+    </div>
+  );
+}
+
+function SystemDetails({ status, failedCount }: { status: StatusData; failedCount?: number }) {
   const { mailbox, queue } = status;
   return (
-    <section aria-labelledby="system-details" className="panel p-6">
-      <h2 id="system-details" className="font-semibold">
-        Mailbox, queue and integrations
-      </h2>
-      <dl className="mt-4 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-        <Metric
+    <section aria-labelledby="system-details" className="panel p-5 sm:p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Activity className="size-4 text-muted-foreground" aria-hidden="true" />
+        <h2 id="system-details" className="text-base font-semibold tracking-tight text-foreground">
+          System status
+        </h2>
+      </div>
+      <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+        <MetricBadge
+          icon={Inbox}
           label="Last mailbox check"
           value={formatRelative(mailbox.last_poll_at)}
-          hint={
-            mailbox.last_poll_at
-              ? formatDateTime(mailbox.last_poll_at)
-              : 'The agent has not checked the mailbox yet'
-          }
+          hint={mailbox.last_poll_at ? formatDateTime(mailbox.last_poll_at) : 'Never checked yet'}
         />
-        <Metric
+        <MetricBadge
+          icon={Mail}
           label="Last email received"
           value={formatRelative(mailbox.last_email_at)}
-          hint={mailbox.last_email_at ? formatDateTime(mailbox.last_email_at) : 'No email has arrived yet'}
+          hint={mailbox.last_email_at ? formatDateTime(mailbox.last_email_at) : 'No emails yet'}
         />
-        <Metric
-          label="Instant notifications"
-          value={
-            mailbox.subscription_expires_at
-              ? `Renew by ${formatDateTime(mailbox.subscription_expires_at)}`
-              : 'Not set up'
+        <MetricBadge
+          icon={Clock}
+          label="Queue"
+          value={`${queue.queued} waiting · ${queue.processing} active`}
+          hint={`${queue.pending_jobs} scheduled`}
+        />
+        <MetricBadge
+          icon={failedCount ? XCircle : CheckCircle2}
+          label="Failed"
+          value={failedCount ? `${failedCount} item${failedCount > 1 ? 's' : ''}` : 'None'}
+          hint={
+            failedCount ? (
+              <Link to="/#admin-failures" className="font-medium text-destructive underline underline-offset-2">
+                See failures →
+              </Link>
+            ) as unknown as string : 'All healthy'
           }
-          hint="Renewed automatically. The 2 minute mailbox check covers any gap."
+          tone={failedCount ? 'danger' : 'success'}
         />
-        <Metric
-          label="Incoming work waiting"
-          value={queue.queued}
-          hint="New emails and HR actions queued for the agent"
-        />
-        <Metric label="Being worked on" value={queue.processing} hint="Picked up by the agent right now" />
-        <Metric
-          label="Emails and follow-ups scheduled"
-          value={queue.pending_jobs}
-          hint="Sent when due, inside the sending window"
-        />
-        <Metric
+        <MetricBadge
+          icon={FileSearch}
           label="Document reading"
           value={status.document_reading_enabled ? 'On' : 'Off'}
-          hint={
-            status.document_reading_enabled
-              ? 'The agent reads documents to check type and name.'
-              : 'Off until security approves. Files are stored, and HR checks them by hand.'
-          }
+          tone={status.document_reading_enabled ? 'success' : 'muted'}
         />
-        <Metric
+        <MetricBadge
+          icon={Database}
           label="D365"
           value={status.d365_enabled ? 'On' : 'Off'}
-          hint={
-            status.d365_enabled
-              ? 'Status changes are read from D365.'
-              : 'Off until D365 access arrives. Data comes from this dashboard and uploads.'
-          }
+          tone={status.d365_enabled ? 'success' : 'muted'}
         />
       </dl>
-      <p className="mt-4 text-sm text-muted-foreground">
-        Document reading and D365 are switched in{' '}
+      <p className="mt-4 text-xs text-muted-foreground">
+        Document reading and D365 are configured in{' '}
         <Link to="/#admin-settings" className="font-medium text-foreground underline underline-offset-3">
           Settings
         </Link>
         .
       </p>
     </section>
-  );
-}
-
-function Metric({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 font-medium tabular-nums">{value}</dd>
-      <dd className="mt-0.5 text-xs text-pretty text-muted-foreground">{hint}</dd>
-    </div>
   );
 }

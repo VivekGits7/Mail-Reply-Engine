@@ -17,7 +17,7 @@ export function DateRange({ label, from, to, onChange }: DateRangeProps) {
         value={from ?? ''}
         max={to}
         onChange={(next) => onChange(next || undefined, to)}
-        className="w-full sm:w-40"
+        className="w-full sm:w-32"
       />
       <span className="text-sm text-muted-foreground" aria-hidden="true">
         to
@@ -27,8 +27,9 @@ export function DateRange({ label, from, to, onChange }: DateRangeProps) {
         placeholder="To"
         value={to ?? ''}
         min={from}
+        align="end"
         onChange={(next) => onChange(from, next || undefined)}
-        className="w-full sm:w-40"
+        className="w-full sm:w-32"
       />
     </fieldset>
   );

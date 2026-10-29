@@ -13,7 +13,6 @@ interface StatTileProps {
   icon: LucideIcon;
   tone?: VisualTone;
   hint?: ReactNode;
-  visual?: ReactNode;
   to?: string;
   loading?: boolean;
   unavailable?: boolean;
@@ -26,7 +25,6 @@ export function StatTile({
   icon: Icon,
   tone = 'azure',
   hint,
-  visual,
   to,
   loading,
   unavailable,
@@ -34,17 +32,11 @@ export function StatTile({
 }: StatTileProps) {
   const body = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <span
-          className={cn(
-            'flex size-11 shrink-0 items-center justify-center rounded-2xl',
-            TONE_STYLES[tone].soft,
-          )}
-        >
-          <Icon className="size-5" aria-hidden="true" />
-        </span>
-        {visual}
-      </div>
+      <span
+        className={cn('flex size-11 shrink-0 items-center justify-center rounded-2xl', TONE_STYLES[tone].soft)}
+      >
+        <Icon className="size-5" aria-hidden="true" />
+      </span>
       <span className="mt-5 text-sm text-muted-foreground">{title}</span>
       <div className="mt-1 flex h-11 items-center text-[2.5rem] leading-none font-light tracking-[-0.04em] tabular-nums">
         {loading ? (

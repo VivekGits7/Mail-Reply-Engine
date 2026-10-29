@@ -1,6 +1,6 @@
 import { Suspense, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useLocation, useOutlet } from 'react-router';
+import { useLocation, useNavigationType, useOutlet } from 'react-router';
 import { BlockSkeleton } from '@/components/common/QueryState';
 import { EASE_FLUID } from '@/utils/animations';
 
@@ -13,8 +13,16 @@ function FrozenOutlet() {
 
 export function AnimatedOutlet() {
   const location = useLocation();
+  // Back/forward (POP) should return to where the user scrolled from, not jump to the top.
+  const navigationType = useNavigationType();
   return (
-    <AnimatePresence mode="wait" initial={false} onExitComplete={() => window.scrollTo({ top: 0 })}>
+    <AnimatePresence
+      mode="wait"
+      initial={false}
+      onExitComplete={() => {
+        if (navigationType !== 'POP') window.scrollTo({ top: 0 });
+      }}
+    >
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0, y: 10, scale: 0.995 }}

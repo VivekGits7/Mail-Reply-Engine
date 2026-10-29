@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SearchInput } from '@/components/common/SearchInput';
 import { BlockSkeleton, EmptyState, ErrorState } from '@/components/common/QueryState';
@@ -27,6 +28,30 @@ import { showToast } from '@/utils/toast';
 import { CheckMode, HireCategory, type ChecklistGroup, type ChecklistItemIn } from '@/types';
 import { adminApi, adminKeys, checklistsQuery } from './Adminapi';
 
+
+const CHECKLISTS_HELP = [
+  {
+    label: 'What is a checklist?',
+    detail: 'A list of documents a new joiner must submit before joining. Each hire type + location has its own list.',
+  },
+  {
+    label: 'Document type',
+    detail: 'The name of the document the agent will look for — e.g. PAN card, Aadhaar, Relieving letter.',
+  },
+  {
+    label: 'Check: Text',
+    detail: 'Agent reads the document and checks its content (e.g. name matches, PAN format is correct).',
+  },
+  {
+    label: 'Check: Present',
+    detail: 'Agent only confirms the file was uploaded — it does not read or verify what is inside.',
+  },
+  {
+    label: 'Required',
+    detail: 'Ticked = joiner cannot be cleared without this document. Unticked = optional, nice to have.',
+  },
+];
+
 export default function Checklists() {
   const { get, set } = useUrlState();
   const isAdmin = useAppSelector(selectIsAdmin);
@@ -37,8 +62,12 @@ export default function Checklists() {
     <section>
       <PageHeader
         title="Checklists"
-        description="The documents the agent asks each joiner for. Each hire type has a default list for every location, and a location can have its own list. Changes apply to new joiners only."
-        actions={isAdmin && <NewChecklist />}
+        actions={
+          <>
+            {isAdmin && <NewChecklist />}
+            <HelpPopover title="How checklists work" items={CHECKLISTS_HELP} />
+          </>
+        }
       />
       <FilterBar>
         <FilterSelect

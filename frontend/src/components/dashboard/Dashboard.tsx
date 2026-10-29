@@ -1,7 +1,8 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useMemo, type ReactNode } from 'react';
 import { PageTitle } from '@/components/common/PageHeader';
 import { BlockSkeleton } from '@/components/common/QueryState';
 import { PAGES } from '@/components/pages';
+import { useScrollSpy } from '@/hooks/useScrollSpy';
 import { useScrollToHash } from '@/hooks/useScrollToHash';
 import { NAV_GROUPS, sectionId } from '@/layouts/sidebar/navItems';
 import { useAllowedItems } from '@/layouts/sidebar/useNav';
@@ -44,7 +45,7 @@ const SECTION_COMPONENT: Record<string, ReactNode> = {
 
 function Section({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <section id={sectionId(to)} className="scroll-mt-24 lg:scroll-mt-28">
+    <section id={sectionId(to)} className="scroll-mt-24 panel p-5 sm:p-8 lg:scroll-mt-28">
       <Suspense fallback={<BlockSkeleton />}>{children}</Suspense>
     </section>
   );
@@ -59,6 +60,11 @@ function GroupLabel({ children }: { children: ReactNode }) {
 export default function Dashboard() {
   useScrollToHash();
   const filter = useAllowedItems();
+  const sectionIds = useMemo(
+    () => NAV_GROUPS.flatMap((group) => filter(group.items).map((item) => sectionId(item.to))),
+    [filter],
+  );
+  useScrollSpy(sectionIds);
 
   return (
     <div className="flex flex-col gap-12">

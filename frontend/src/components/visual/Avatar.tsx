@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { cn } from '@/utils/cn';
 import { getInitials } from '@/utils/utility';
 
-const HUES = [263, 290, 152, 38, 200, 330, 95, 18];
+// Primary blue and success green only — red is reserved for errors, so an
+// avatar never accidentally reads as "something's wrong with this person".
+const HUES = [263, 152];
 
 function hueFor(name: string) {
   let hash = 0;

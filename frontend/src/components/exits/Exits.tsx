@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { DoorOpen } from 'lucide-react';
-import { Link } from 'react-router';
+import { DoorOpen, Eye, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { DateRange } from '@/components/common/DateRange';
@@ -23,7 +23,6 @@ import { ClearanceTeam, ExitStage, type ExitSortBy, type SortOrder } from '@/typ
 import { ClearanceChips } from './ClearanceChips';
 import { Avatar } from '@/components/visual/Avatar';
 import { ExitFormDialog } from './ExitFormDialog';
-import { ExitStats } from './ExitStats';
 import { exitListQuery } from './Exitsapi';
 
 const SORT_OPTIONS: SortOption[] = [
@@ -35,6 +34,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 export default function Exits() {
   const isAdmin = useAppSelector(selectIsAdmin);
+  const navigate = useNavigate();
   const { get, set, page } = useUrlState();
   const search = get('search');
   const filters = {
@@ -48,14 +48,29 @@ export default function Exits() {
   };
   const exits = useQuery(exitListQuery({ ...filters, ...page }));
   const hasFilters = Boolean(
-    search || filters.stage || filters.pending_team || filters.lwd_from || filters.lwd_to,
+    search ||
+      filters.stage ||
+      filters.pending_team ||
+      filters.lwd_from ||
+      filters.lwd_to ||
+      get('sort_by') ||
+      get('sort_order'),
   );
+  const clearFilters = () =>
+    set({
+      search: undefined,
+      stage: undefined,
+      pending_team: undefined,
+      lwd_from: undefined,
+      lwd_to: undefined,
+      sort_by: undefined,
+      sort_order: undefined,
+    });
 
   return (
     <section>
       <PageHeader
         title="Exits"
-        description="Clearances the agent is chasing with IT, Finance, Admin and the manager."
         actions={
           isAdmin && (
             <ExitFormDialog
@@ -68,14 +83,6 @@ export default function Exits() {
             />
           )
         }
-      />
-
-      <ExitStats
-        stage={filters.stage}
-        lwdFrom={filters.lwd_from}
-        lwdTo={filters.lwd_to}
-        onStage={(value) => set({ stage: value })}
-        onRange={(range) => set({ lwd_from: range?.from, lwd_to: range?.to })}
       />
 
       <FilterBar>
@@ -105,6 +112,12 @@ export default function Exits() {
           sortOrder={filters.sort_order}
           onChange={(sortBy, sortOrder) => set({ sort_by: sortBy, sort_order: sortOrder })}
         />
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
 
       {exits.isPending ? (
@@ -132,19 +145,26 @@ export default function Exits() {
                   <TableHead>Clearances</TableHead>
                   <TableHead>Flags</TableHead>
                   <TableHead>Updated</TableHead>
+                  <TableHead className="text-right">View</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exits.data.data.map((exit) => (
-                  <TableRow key={exit.case_id}>
+                {exits.data.data.map((exit) => {
+                  const to = `/cases/${exit.case_id}`;
+                  return (
+                  <TableRow
+                    key={exit.case_id}
+                    className="cursor-pointer"
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest('a')) return;
+                      navigate(to);
+                    }}
+                  >
                     <TableCell className="max-w-72">
                       <div className="flex items-center gap-3">
                         <Avatar name={exit.full_name} size="md" />
                         <div className="min-w-0">
-                          <Link
-                            to={`/cases/${exit.case_id}`}
-                            className="block truncate font-medium hover:text-primary hover:underline"
-                          >
+                          <Link to={to} className="block truncate font-medium hover:text-primary hover:underline">
                             {exit.full_name}
                           </Link>
                           {exit.employee_code && (
@@ -175,8 +195,18 @@ export default function Exits() {
                     <TableCell className="text-muted-foreground tabular-nums">
                       {formatRelative(exit.updated_at)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Link
+                        to={to}
+                        aria-label="View exit"
+                        className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <Eye className="size-4" aria-hidden="true" />
+                      </Link>
+                    </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableShell>

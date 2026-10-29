@@ -1,17 +1,44 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CalendarPlus, FileSignature, FileUp, PackageCheck, Pencil, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Award,
+  Briefcase,
+  Calendar,
+  CalendarClock,
+  CalendarPlus,
+  Check,
+  CheckCircle2,
+  Copy,
+  FileSignature,
+  FileUp,
+  Hash,
+  Mail,
+  MailCheck,
+  MapPin,
+  PackageCheck,
+  Pencil,
+  Tag,
+  User,
+  UserCheck,
+  UserRound,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { JoinerFormDialog } from '@/components/joiners/JoinerFormDialog';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { BlockSkeleton, ErrorState } from '@/components/common/QueryState';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUrlState } from '@/hooks/useUrlState';
 import { getErrorStatus } from '@/utils/apiError';
+import { cn } from '@/utils/cn';
 import { CASE_TYPE_LABELS, flagLabel } from '@/utils/labels';
+import { showToast } from '@/utils/toast';
 import { formatDate, formatRelative, humanize } from '@/utils/utility';
 import type { CaseDetailData, CaseFlag } from '@/types';
 import { Avatar } from '@/components/visual/Avatar';
@@ -32,9 +59,18 @@ import { TimelinePanel } from './TimelinePanel';
 import { useCaseMutation } from './useCaseMutation';
 
 const BACK_LINKS: Record<string, { to: string; label: string }> = {
-  onboarding: { to: '/joiners', label: 'Joiners' },
-  induction: { to: '/joiners', label: 'Joiners' },
-  exit: { to: '/exits', label: 'Exits' },
+  onboarding: { to: '/#joiners', label: 'Joiners' },
+  induction: { to: '/#joiners', label: 'Joiners' },
+  exit: { to: '/#exits', label: 'Exits' },
+};
+
+const TAB_HELP: Record<string, string> = {
+  checklist: 'Every document required for this case, and whether each one has been verified yet.',
+  sessions: 'The induction or welcome sessions scheduled for this person.',
+  tasks: 'Action items tied to this case — things someone (IT, HR, a team) still needs to do.',
+  files: 'Every document or attachment that has been uploaded for this case.',
+  emails: 'The email conversation history for this case.',
+  timeline: 'A chronological log of everything that has happened on this case so far.',
 };
 
 const SIGN_OFF_EARLY_STAGES = new Set(['docs_requested', 'docs_in_progress', 'dropout']);
@@ -145,6 +181,12 @@ function CaseView({ data }: { data: CaseDetailData }) {
                 {caseData.status !== 'open' && <StatusBadge value={caseData.status} />}
                 <CaseFlags caseId={caseData.case_id} flags={caseData.flags} canClear={isAdmin} />
               </div>
+              {caseData.case_type === 'exit' && caseData.last_working_day && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Last working day {formatDate(caseData.last_working_day)} ·{' '}
+                  {formatRelative(caseData.last_working_day)}
+                </p>
+              )}
               {data.next_followup_at && ACTIVE.has(caseData.status) && (
                 <p className="mt-2 text-sm text-muted-foreground">
                   Next follow-up {formatRelative(data.next_followup_at)}
@@ -187,35 +229,46 @@ function CaseView({ data }: { data: CaseDetailData }) {
                 />
               </div>
             )}
-            {isAdmin && <CaseActions data={data} />}
           </div>
         </div>
+        {isAdmin && (
+          <div className="relative mt-5">
+            <CaseActions data={data} />
+          </div>
+        )}
         <StageStepper caseType={caseData.case_type} stage={caseData.stage} />
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="flex flex-col gap-8">
         <Tabs
           value={tab}
           onValueChange={(value) => set({ tab: value }, { keepPage: true })}
           className="min-w-0"
         >
-          <TabsList className="max-w-full overflow-x-auto">
-            {tabs.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
-                {item.count != null && (
-                  <span className="text-xs text-muted-foreground tabular-nums">{item.count}</span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="flex items-center gap-2">
+            <TabsList className="max-w-full overflow-x-auto">
+              {tabs.map((item) => (
+                <TabsTrigger key={item.value} value={item.value}>
+                  {item.label}
+                  {item.count != null && (
+                    <span className="text-xs text-muted-foreground tabular-nums">{item.count}</span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <HelpPopover
+              title="What these tabs show"
+              items={tabs.map((item) => ({ label: item.label, detail: TAB_HELP[item.value] }))}
+            />
+          </div>
           {tabs.map((item) => (
             <TabsContent key={item.value} value={item.value} className="mt-3">
               {item.content}
             </TabsContent>
           ))}
         </Tabs>
-        <CaseSidebar data={data} />
+
+        <CaseDetailsSection data={data} />
       </div>
     </article>
   );
@@ -256,8 +309,47 @@ function CaseActions({ data }: { data: CaseDetailData }) {
     isOnboarding &&
     (caseData.stage === 'ready_for_signoff' || SIGN_OFF_EARLY_STAGES.has(caseData.stage));
 
+  const help: { label: string; detail: string }[] = [];
+  if (canSignOff) {
+    help.push({
+      label: caseData.stage === 'ready_for_signoff' ? 'Sign off' : 'Sign off early',
+      detail:
+        "Tells IT to set up this person's email and system access. Since not every document is verified yet, you'll be asked to write a short reason first.",
+    });
+  }
+  if (caseData.case_type === 'exit' && caseData.stage === 'all_cleared' && active) {
+    help.push({
+      label: 'Confirm release',
+      detail: 'Lets HR know every team has cleared this exit, so the relieving or experience letter can now be issued.',
+    });
+  }
+  if (isOnboarding && !hasInduction && person.joining_date) {
+    help.push({
+      label: 'Plan induction',
+      detail:
+        'Builds a welcome and induction schedule for this joiner, skipping weekends and holidays. It waits for someone to approve it before anything is sent.',
+    });
+  }
+  if (isOnboarding || caseData.case_type === 'induction') {
+    help.push({
+      label: 'Appointment letter',
+      detail:
+        "Upload the signed appointment letter PDF here. The agent never opens or reads it — it's only attached to the joiner's welcome email.",
+    });
+  }
+  if (isOnboarding) {
+    help.push({
+      label: 'Edit details',
+      detail: "Fix this person's name, emails, level, location or joining date. Just updates the record — no emails are sent.",
+    });
+  }
+  help.push({
+    label: 'Case status',
+    detail: 'Put this case on hold, close it, or cancel it — each option explains what it does before you confirm.',
+  });
+
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {canSignOff && (
         <SignOffDialog
           caseId={caseData.case_id}
@@ -316,77 +408,231 @@ function CaseActions({ data }: { data: CaseDetailData }) {
         />
       )}
       <CaseStatusMenu caseData={caseData} />
+      <HelpPopover title="What these buttons do" items={help} />
     </div>
   );
 }
 
-function Detail({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
+function DetailCard({
+  icon: Icon,
+  label,
+  value,
+  isEmail,
+  mono,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value?: string | null;
+  isEmail?: boolean;
+  mono?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
   if (!value) return null;
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    showToast.success(`Copied ${label} to clipboard`);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="flex justify-between gap-3 py-1.5 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className={mono ? 'text-right font-mono' : 'min-w-0 truncate text-right'} title={value}>
-        {value}
-      </dd>
+    <div className="group relative flex items-start gap-3.5 rounded-2xl border border-border/60 bg-card/80 p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card hover:shadow-md">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+        <Icon className="size-4.5" aria-hidden="true" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[0.68rem] font-semibold tracking-wider text-muted-foreground uppercase">
+          {label}
+        </p>
+        <div className="mt-1 flex items-center justify-between gap-1.5">
+          {isEmail ? (
+            <a
+              href={`mailto:${value}`}
+              className="min-w-0 truncate text-sm font-semibold text-foreground transition-colors hover:text-primary hover:underline"
+              title={`Email ${value}`}
+            >
+              {value}
+            </a>
+          ) : (
+            <p
+              className={cn(
+                'min-w-0 break-words text-sm font-semibold text-foreground',
+                mono && 'font-mono text-xs font-normal',
+              )}
+              title={value}
+            >
+              {value}
+            </p>
+          )}
+          {isEmail && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              title={copied ? 'Copied!' : 'Copy'}
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none"
+            >
+              {copied ? (
+                <Check className="size-3.5 text-success" />
+              ) : (
+                <Copy className="size-3.5 opacity-60 group-hover:opacity-100" />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function CaseSidebar({ data }: { data: CaseDetailData }) {
+function CaseDetailsSection({ data }: { data: CaseDetailData }) {
   const { person, case: caseData } = data;
+  const isOnboarding = caseData.case_type === 'onboarding';
+
   return (
-    <aside className="flex flex-col gap-4">
-      <section className="panel p-5">
-        <h2 className="mb-3 text-base font-normal tracking-tight">Details</h2>
-        <dl className="divide-y">
-          <Detail label="Employee ID" value={person.employee_code} mono />
-          <Detail label="Designation" value={person.designation} />
-          <Detail label="Level" value={person.level} />
-          <Detail label="Hire type" value={person.hire_category ? humanize(person.hire_category) : null} />
-          <Detail label="Location" value={person.location} />
-          <Detail label="Joining" value={person.joining_date ? formatDate(person.joining_date) : null} />
-          <Detail label="Personal email" value={person.personal_email} />
-          <Detail label="Work email" value={person.work_email} />
-          <Detail label="Manager" value={person.manager_name} />
-          <Detail label="Manager email" value={person.manager_email} />
-          <Detail label="Recruiter" value={person.recruiter_email} />
-          <Detail label="Opened" value={formatDate(caseData.opened_at)} />
-          {caseData.closed_at && <Detail label="Closed" value={formatDate(caseData.closed_at)} />}
-        </dl>
+    <div className="flex flex-col gap-6">
+      <section className="panel overflow-hidden p-6 sm:p-7">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <UserRound className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">Details</h2>
+              <p className="text-xs text-muted-foreground">
+                Employee profile, organization, and case metadata
+              </p>
+            </div>
+          </div>
+          {isOnboarding && (
+            <JoinerFormDialog
+              person={person}
+              caseId={caseData.case_id}
+              trigger={
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Pencil className="size-3.5" aria-hidden="true" />
+                  Edit details
+                </Button>
+              }
+            />
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <DetailCard icon={Briefcase} label="Designation" value={person.designation} />
+          <DetailCard icon={Award} label="Level" value={person.level} />
+          <DetailCard
+            icon={Tag}
+            label="Hire type"
+            value={person.hire_category ? humanize(person.hire_category) : null}
+          />
+          <DetailCard icon={MapPin} label="Location" value={person.location} />
+          <DetailCard
+            icon={Calendar}
+            label="Joining"
+            value={person.joining_date ? formatDate(person.joining_date) : null}
+          />
+          <DetailCard
+            icon={Mail}
+            label="Personal email"
+            value={person.personal_email}
+            isEmail
+          />
+          <DetailCard
+            icon={MailCheck}
+            label="Work email"
+            value={person.work_email}
+            isEmail
+          />
+          <DetailCard icon={User} label="Manager" value={person.manager_name} />
+          <DetailCard
+            icon={Mail}
+            label="Manager email"
+            value={person.manager_email}
+            isEmail
+          />
+          <DetailCard
+            icon={UserCheck}
+            label="Recruiter"
+            value={person.recruiter_email}
+            isEmail
+          />
+          <DetailCard
+            icon={Hash}
+            label="Employee ID"
+            value={person.employee_code}
+            mono
+          />
+          <DetailCard
+            icon={CalendarClock}
+            label="Opened"
+            value={formatDate(caseData.opened_at)}
+          />
+          {caseData.case_type === 'exit' && (
+            <DetailCard
+              icon={Calendar}
+              label="Last working day"
+              value={caseData.last_working_day ? formatDate(caseData.last_working_day) : null}
+            />
+          )}
+          {caseData.closed_at && (
+            <DetailCard
+              icon={CheckCircle2}
+              label="Closed"
+              value={formatDate(caseData.closed_at)}
+            />
+          )}
+        </div>
       </section>
-      {data.approvals.length > 0 && (
-        <section className="panel p-5">
-          <h2 className="mb-3 text-base font-normal tracking-tight">Approvals</h2>
-          <ul className="flex flex-col gap-2">
-            {data.approvals.map((approval) => (
-              <li key={approval.approval_id} className="flex items-center justify-between gap-2 text-sm">
-                <Link
-                  to={`/approvals/${approval.approval_id}`}
-                  className="hover:text-primary hover:underline"
-                >
-                  {approval.approval_type === 'reply' ? 'Reply draft' : 'Induction plan'}
-                </Link>
-                <StatusBadge value={approval.status} />
-              </li>
-            ))}
-          </ul>
-        </section>
+
+      {(data.approvals.length > 0 || data.related_cases.length > 0) && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {data.approvals.length > 0 && (
+            <section className="panel p-5 sm:p-6">
+              <h3 className="mb-3 text-base font-semibold tracking-tight text-foreground">Approvals</h3>
+              <ul className="flex flex-col gap-2.5">
+                {data.approvals.map((approval) => (
+                  <li
+                    key={approval.approval_id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-card p-3 text-sm"
+                  >
+                    <Link
+                      to={`/approvals/${approval.approval_id}`}
+                      className="font-medium text-foreground hover:text-primary hover:underline"
+                    >
+                      {approval.approval_type === 'reply' ? 'Reply draft' : 'Induction plan'}
+                    </Link>
+                    <StatusBadge value={approval.status} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {data.related_cases.length > 0 && (
+            <section className="panel p-5 sm:p-6">
+              <h3 className="mb-3 text-base font-semibold tracking-tight text-foreground">Related cases</h3>
+              <ul className="flex flex-col gap-2.5">
+                {data.related_cases.map((related) => (
+                  <li
+                    key={related.case_id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-card p-3 text-sm"
+                  >
+                    <Link
+                      to={`/cases/${related.case_id}`}
+                      className="font-medium text-foreground hover:text-primary hover:underline"
+                    >
+                      {CASE_TYPE_LABELS[related.case_type] ?? humanize(related.case_type)}
+                    </Link>
+                    <StatusBadge value={related.stage} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
-      {data.related_cases.length > 0 && (
-        <section className="panel p-5">
-          <h2 className="mb-3 text-base font-normal tracking-tight">Related cases</h2>
-          <ul className="flex flex-col gap-2">
-            {data.related_cases.map((related) => (
-              <li key={related.case_id} className="flex items-center justify-between gap-2 text-sm">
-                <Link to={`/cases/${related.case_id}`} className="hover:text-primary hover:underline">
-                  {CASE_TYPE_LABELS[related.case_type] ?? humanize(related.case_type)}
-                </Link>
-                <StatusBadge value={related.stage} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </aside>
+    </div>
   );
 }

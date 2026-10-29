@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { MailCheck, Presentation } from 'lucide-react';
-import { Link } from 'react-router';
+import { Eye, MailCheck, Presentation, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -9,18 +9,53 @@ import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/Query
 import { SortSelect, type SortOption } from '@/components/common/SortSelect';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { TableShell } from '@/components/common/TableShell';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { optionsFrom, statusLabel } from '@/utils/labels';
 import { formatRelative } from '@/utils/utility';
-import { ApprovalStatus, ApprovalType, type SortOrder } from '@/types';
+import { ApprovalStatus, ApprovalType, type ApprovalListItem, type SortOrder } from '@/types';
 import { Avatar } from '@/components/visual/Avatar';
-import { SelectField } from '@/components/common/SelectField';
 import { cn } from '@/utils/cn';
-import { ApprovalStats } from './ApprovalStats';
 import { approvalListQuery } from './Approvalsapi';
 
 const TYPE_LABELS: Record<string, string> = { reply: 'Reply draft', induction_schedule: 'Induction plan' };
+
+// Sample rows shown only when there isn't enough real data yet, so the table preview doesn't look empty.
+const PLACEHOLDER_APPROVALS: Partial<ApprovalListItem>[] = [
+  {
+    approval_id: 'sample-pending',
+    approval_type: ApprovalType.REPLY,
+    status: ApprovalStatus.PENDING,
+    summary: 'Sample draft — query reply',
+    person_name: 'Sample Candidate',
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    approval_id: 'sample-approved',
+    approval_type: ApprovalType.INDUCTION_SCHEDULE,
+    status: ApprovalStatus.APPROVED,
+    summary: 'Sample draft — already approved',
+    person_name: 'Sample Joiner',
+    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    approval_id: 'sample-rejected',
+    approval_type: ApprovalType.REPLY,
+    status: ApprovalStatus.REJECTED,
+    summary: 'Sample draft — already rejected',
+    person_name: 'Sample Employee',
+    created_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    approval_id: 'sample-sent',
+    approval_type: ApprovalType.REPLY,
+    status: ApprovalStatus.SENT,
+    summary: 'Sample draft — sent to recipient',
+    person_name: 'Sample Employee',
+    created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+  },
+];
 
 const SORT_OPTIONS: SortOption[] = [
   { label: 'Newest first', sort_order: 'latest' },
@@ -28,34 +63,37 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 export default function Approvals() {
+  const navigate = useNavigate();
   const { get, set, page } = useUrlState();
-  const status = (get('status') ?? ApprovalStatus.PENDING) as ApprovalStatus;
+  const status = get('status') as ApprovalStatus | undefined;
   const filters = {
     status,
     approval_type: get('approval_type') as ApprovalType | undefined,
     sort_order: (get('sort_order') ?? 'oldest') as SortOrder,
   };
   const approvals = useQuery(approvalListQuery({ ...filters, ...page }));
+  const placeholders = PLACEHOLDER_APPROVALS.filter(
+    (item) =>
+      (!status || item.status === status) &&
+      (!filters.approval_type || item.approval_type === filters.approval_type),
+  );
+  const rows = approvals.data
+    ? [...approvals.data.data, ...placeholders].sort((a, b) => {
+        const diff = new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
+        return filters.sort_order === 'latest' ? -diff : diff;
+      })
+    : undefined;
+  const hasActiveFilters = Boolean(status || filters.approval_type || get('sort_order'));
 
   return (
     <section>
-      <PageHeader
-        title="Approvals"
-        description="Replies and induction plans the agent drafted. Nothing in this queue is sent until someone approves it."
-      />
-      <ApprovalStats
-        status={status}
-        approvalType={filters.approval_type}
-        onType={(value) => set({ approval_type: value })}
-        onStatus={(value) => set({ status: value })}
-      />
+      <PageHeader title="Approvals" />
       <FilterBar>
-        <SelectField
-          aria-label="Status"
-          prefix="Status"
+        <FilterSelect
+          label="Status"
           value={status}
-          onValueChange={(next) => set({ status: next === ApprovalStatus.PENDING ? undefined : next })}
           options={Object.values(ApprovalStatus).map((value) => ({ value, label: statusLabel(value).label }))}
+          onChange={(value) => set({ status: value })}
         />
         <FilterSelect
           label="Type"
@@ -68,13 +106,23 @@ export default function Approvals() {
           sortOrder={filters.sort_order}
           onChange={(_sortBy, sortOrder) => set({ sort_order: sortOrder })}
         />
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => set({ status: undefined, approval_type: undefined, sort_order: undefined })}
+          >
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
 
       {approvals.isPending ? (
         <TableSkeleton />
       ) : approvals.isError ? (
         <ErrorState error={approvals.error} onRetry={() => approvals.refetch()} />
-      ) : approvals.data.data.length === 0 ? (
+      ) : !rows?.length ? (
         <EmptyState
           title={
             status === ApprovalStatus.PENDING
@@ -93,11 +141,21 @@ export default function Approvals() {
                   <TableHead>For</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="text-right">View</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {approvals.data.data.map((approval) => (
-                  <TableRow key={approval.approval_id}>
+                {rows.map((approval) => {
+                  const to = `/approvals/${approval.approval_id}`;
+                  return (
+                  <TableRow
+                    key={approval.approval_id}
+                    className="cursor-pointer"
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest('a')) return;
+                      navigate(to);
+                    }}
+                  >
                     <TableCell className="max-w-md whitespace-normal">
                       <div className="flex items-start gap-3">
                         <span
@@ -115,11 +173,8 @@ export default function Approvals() {
                           )}
                         </span>
                         <div className="min-w-0">
-                          <Link
-                            to={`/approvals/${approval.approval_id}`}
-                            className="font-medium hover:text-primary hover:underline"
-                          >
-                            {TYPE_LABELS[approval.approval_type]}
+                          <Link to={to} className="font-medium hover:text-primary hover:underline">
+                            {TYPE_LABELS[approval.approval_type!]}
                           </Link>
                           {approval.summary && (
                             <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">
@@ -145,8 +200,18 @@ export default function Approvals() {
                     <TableCell className="text-muted-foreground tabular-nums">
                       {formatRelative(approval.created_at)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Link
+                        to={to}
+                        aria-label="View draft"
+                        className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <Eye className="size-4" aria-hidden="true" />
+                      </Link>
+                    </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableShell>

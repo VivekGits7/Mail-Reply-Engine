@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { UserPlus } from 'lucide-react';
-import { Link } from 'react-router';
+import { Eye, UserPlus, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { DateRange } from '@/components/common/DateRange';
@@ -30,7 +30,6 @@ import {
 } from '@/types';
 import { Avatar } from '@/components/visual/Avatar';
 import { JoinerFormDialog } from './JoinerFormDialog';
-import { JoinerStats } from './JoinerStats';
 import { joinerListQuery } from './Joinersapi';
 
 const SORT_OPTIONS: SortOption[] = [
@@ -43,6 +42,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 export default function Joiners() {
   const isAdmin = useAppSelector(selectIsAdmin);
+  const navigate = useNavigate();
   const { get, set, page } = useUrlState();
   const search = get('search');
   const filters = {
@@ -57,14 +57,30 @@ export default function Joiners() {
   };
   const joiners = useQuery(joinerListQuery({ ...filters, ...page }));
   const hasFilters = Boolean(
-    search || filters.stage || filters.flag || filters.hire_category || filters.joining_from,
+    search ||
+      filters.stage ||
+      filters.flag ||
+      filters.hire_category ||
+      filters.joining_from ||
+      get('sort_by') ||
+      get('sort_order'),
   );
+  const clearFilters = () =>
+    set({
+      search: undefined,
+      stage: undefined,
+      flag: undefined,
+      hire_category: undefined,
+      joining_from: undefined,
+      joining_to: undefined,
+      sort_by: undefined,
+      sort_order: undefined,
+    });
 
   return (
     <section>
       <PageHeader
         title="Joiners"
-        description="Everyone the agent is collecting documents from, from offer to IT setup."
         actions={
           isAdmin && (
             <JoinerFormDialog
@@ -77,15 +93,6 @@ export default function Joiners() {
             />
           )
         }
-      />
-
-      <JoinerStats
-        stage={filters.stage}
-        flag={filters.flag}
-        joiningFrom={filters.joining_from}
-        onStage={(value) => set({ stage: value })}
-        onAtRisk={(active) => set({ flag: active ? CaseFlag.DROPOUT_RISK : undefined })}
-        onThisWeek={(range) => set({ joining_from: range?.from, joining_to: range?.to })}
       />
 
       <FilterBar>
@@ -120,6 +127,12 @@ export default function Joiners() {
           sortOrder={filters.sort_order}
           onChange={(sortBy, sortOrder) => set({ sort_by: sortBy, sort_order: sortOrder })}
         />
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
 
       {joiners.isPending ? (
@@ -147,19 +160,26 @@ export default function Joiners() {
                   <TableHead>Documents</TableHead>
                   <TableHead>Flags</TableHead>
                   <TableHead>Next follow-up</TableHead>
+                  <TableHead className="text-right">View</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {joiners.data.data.map((joiner) => (
-                  <TableRow key={joiner.case_id}>
+                {joiners.data.data.map((joiner) => {
+                  const to = `/cases/${joiner.case_id}`;
+                  return (
+                  <TableRow
+                    key={joiner.case_id}
+                    className="cursor-pointer"
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest('a')) return;
+                      navigate(to);
+                    }}
+                  >
                     <TableCell className="max-w-72">
                       <div className="flex items-center gap-3">
                         <Avatar name={joiner.full_name} src={joiner.photo_url} size="md" />
                         <div className="min-w-0">
-                          <Link
-                            to={`/cases/${joiner.case_id}`}
-                            className="block truncate font-medium hover:text-primary hover:underline"
-                          >
+                          <Link to={to} className="block truncate font-medium hover:text-primary hover:underline">
                             {joiner.full_name}
                           </Link>
                           <span className="text-xs text-muted-foreground">
@@ -193,8 +213,18 @@ export default function Joiners() {
                     <TableCell className="text-muted-foreground tabular-nums">
                       {formatRelative(joiner.next_followup_at)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Link
+                        to={to}
+                        aria-label="View joiner"
+                        className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <Eye className="size-4" aria-hidden="true" />
+                      </Link>
+                    </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableShell>

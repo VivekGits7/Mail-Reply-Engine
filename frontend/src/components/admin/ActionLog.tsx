@@ -1,20 +1,41 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
+import { X } from 'lucide-react';
 import { DateRange } from '@/components/common/DateRange';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/QueryState';
 import { SearchInput } from '@/components/common/SearchInput';
 import { TableShell } from '@/components/common/TableShell';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useLocalListState as useUrlState } from '@/hooks/useLocalListState';
 import { ACTOR_LABELS, labelFrom } from '@/utils/labels';
 import { formatDateTime, humanize } from '@/utils/utility';
 import { ActorType, type ActorType as Actor, type SortOrder } from '@/types';
-import { ActivityStats } from './ActivityStats';
 import { actionLogQuery } from './Adminapi';
+
+const ACTIVITY_HELP = [
+  {
+    label: 'What this is',
+    detail: 'A running history of everything the agent, the system and HR users have done — every email, check, approval and settings change.',
+  },
+  {
+    label: 'Done by',
+    detail: '"Agent" = the automated system did it on its own. "Admin"/a name = an HR person did it by hand.',
+  },
+  {
+    label: 'Case',
+    detail: 'Which joiner or exit this action was for, if it was tied to one. Click to open it.',
+  },
+  {
+    label: 'Privacy',
+    detail: 'Document content and personal details are never stored here — only that an action happened.',
+  },
+];
 
 export default function ActionLog() {
   const { get, set, page } = useUrlState();
@@ -28,13 +49,17 @@ export default function ActionLog() {
     sort_order: (get('sort_order') ?? 'latest') as SortOrder,
   };
   const list = useQuery(actionLogQuery(params));
+  const hasFilters = Boolean(
+    params.action || params.actor_type || get('date_from') || get('date_to') || get('sort_order'),
+  );
+  const clearFilters = () =>
+    set({ action: undefined, actor_type: undefined, date_from: undefined, date_to: undefined, sort_order: undefined });
   return (
     <section>
       <PageHeader
         title="Activity log"
-        description="Everything the agent, the system and users did, with who did it and when. Document content and personal details are never stored here."
+        actions={<HelpPopover title="What this page is" items={ACTIVITY_HELP} />}
       />
-      <ActivityStats actor={params.actor_type} onActor={(actor_type) => set({ actor_type })} />
       <FilterBar>
         <SearchInput label="Action name" value={params.action} onSearch={(action) => set({ action })} />
         <FilterSelect
@@ -58,6 +83,12 @@ export default function ActionLog() {
           ]}
           onChange={(sort_order) => set({ sort_order })}
         />
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
       {list.isPending ? (
         <TableSkeleton />
@@ -91,7 +122,7 @@ export default function ActionLog() {
               <TableBody>
                 {list.data.data.map((item) => (
                   <TableRow key={item.action_log_id}>
-                    <TableCell className="font-mono text-xs whitespace-nowrap tabular-nums">
+                    <TableCell className="whitespace-nowrap tabular-nums">
                       {formatDateTime(item.occurred_at)}
                     </TableCell>
                     <TableCell className="font-medium">{humanize(item.action)}</TableCell>

@@ -104,6 +104,261 @@ const DUMMY_CASE_DETAIL: CaseDetailData = {
   next_followup_at: null,
 };
 
+function onboardingCase(opts: {
+  caseId: string;
+  fullName: string;
+  stage: string;
+  level: string;
+  location: string;
+  hireCategory: string;
+  joiningDate: string;
+  docsVerified: boolean;
+  flags?: string[];
+}): CaseDetailData {
+  const slug = opts.fullName.toLowerCase().replace(/\s+/g, '.');
+  return {
+    case: {
+      case_id: opts.caseId,
+      case_type: 'onboarding',
+      stage: opts.stage,
+      status: opts.stage === 'closed' ? 'closed' : 'open',
+      flags: opts.flags ?? [],
+      track: 'mid',
+      parent_case_id: null,
+      opened_at: new Date().toISOString(),
+      closed_at: null,
+    },
+    person: {
+      person_id: `person_${opts.caseId}`,
+      full_name: opts.fullName,
+      personal_email: `${slug}@example.com`,
+      work_email: null,
+      employee_code: null,
+      designation: 'Software Engineer',
+      level: opts.level,
+      location: opts.location,
+      hire_category: opts.hireCategory,
+      joining_date: opts.joiningDate,
+      date_of_birth: '1998-01-01',
+      manager_name: 'Demo Manager',
+      manager_email: 'demo.manager@tcgdigital.com',
+      recruiter_email: 'demo.recruiter@tcgdigital.com',
+      role: 'joiner',
+      status: 'active',
+      photo_url: null,
+    },
+    checklist: [
+      {
+        checklist_item_id: `chk_${opts.caseId}`,
+        document_type: 'pan_card',
+        is_mandatory: true,
+        check_mode: 'text',
+        status: opts.docsVerified ? 'verified' : 'pending',
+        person_check: opts.docsVerified ? 'match' : null,
+        attachment_id: null,
+        notes: null,
+        updated_at: new Date().toISOString(),
+      },
+    ],
+    attachments: [],
+    tasks: [
+      {
+        task_id: `task_${opts.caseId}`,
+        case_id: opts.caseId,
+        task_type: 'it_setup',
+        owner_role: 'it',
+        owner_email: 'it@tcgdigital.com',
+        status: 'open',
+        sub_items: {},
+        progress_notes: null,
+        followups_sent: 0,
+        next_followup_at: null,
+        due_at: null,
+        completed_at: null,
+      },
+    ],
+    sessions: [],
+    approvals: [],
+    timeline: [
+      {
+        at: new Date().toISOString(),
+        kind: 'note',
+        direction: null,
+        subject: null,
+        summary: 'Dummy case created (backend disconnected)',
+        category: null,
+        actor: 'system',
+        email_id: null,
+      },
+    ],
+    related_cases: [],
+    next_followup_at: null,
+  };
+}
+
+function exitCase(opts: {
+  caseId: string;
+  fullName: string;
+  employeeCode: string;
+  stage: string;
+  lastWorkingDay: string;
+  clearances: Record<string, string>;
+}): CaseDetailData {
+  const slug = opts.fullName.toLowerCase().replace(/\s+/g, '.');
+  return {
+    case: {
+      case_id: opts.caseId,
+      case_type: 'exit',
+      stage: opts.stage,
+      status: opts.stage === 'closed' ? 'closed' : 'open',
+      flags: [],
+      track: null,
+      parent_case_id: null,
+      opened_at: new Date().toISOString(),
+      closed_at: null,
+      last_working_day: opts.lastWorkingDay,
+    },
+    person: {
+      person_id: `person_${opts.caseId}`,
+      full_name: opts.fullName,
+      personal_email: null,
+      work_email: `${slug}@tcgdigital.com`,
+      employee_code: opts.employeeCode,
+      designation: null,
+      level: null,
+      location: null,
+      hire_category: null,
+      joining_date: null,
+      date_of_birth: null,
+      manager_name: 'Demo Manager',
+      manager_email: 'demo.manager@tcgdigital.com',
+      recruiter_email: null,
+      role: 'leaver',
+      status: 'active',
+      photo_url: null,
+    },
+    checklist: [],
+    attachments: [],
+    tasks: Object.entries(opts.clearances).map(([team, status]) => ({
+      task_id: `task_${opts.caseId}_${team}`,
+      case_id: opts.caseId,
+      task_type: 'exit_clearance',
+      owner_role: team,
+      owner_email: `${team}@tcgdigital.com`,
+      status,
+      sub_items: {},
+      progress_notes: null,
+      followups_sent: 0,
+      next_followup_at: null,
+      due_at: null,
+      completed_at: status === 'done' ? new Date().toISOString() : null,
+    })),
+    sessions: [],
+    approvals: [],
+    timeline: [
+      {
+        at: new Date().toISOString(),
+        kind: 'note',
+        direction: null,
+        subject: null,
+        summary: 'Dummy case created (backend disconnected)',
+        category: null,
+        actor: 'system',
+        email_id: null,
+      },
+    ],
+    related_cases: [],
+    next_followup_at: null,
+  };
+}
+
+const DUMMY_CASES: Record<string, CaseDetailData> = {
+  case_dummy_001: DUMMY_CASE_DETAIL,
+  case_sample_requested: onboardingCase({
+    caseId: 'case_sample_requested',
+    fullName: 'Sample Joiner',
+    stage: 'docs_requested',
+    level: 'L1',
+    location: 'Pune',
+    hireCategory: 'campus',
+    joiningDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    docsVerified: false,
+  }),
+  case_sample_signoff: onboardingCase({
+    caseId: 'case_sample_signoff',
+    fullName: 'Sample Candidate',
+    stage: 'ready_for_signoff',
+    level: 'L3',
+    location: 'Hyderabad',
+    hireCategory: 'lateral',
+    joiningDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    docsVerified: true,
+  }),
+  case_sample_it: onboardingCase({
+    caseId: 'case_sample_it',
+    fullName: 'Sample Employee',
+    stage: 'it_requested',
+    level: 'L2',
+    location: 'Bengaluru',
+    hireCategory: 'lateral',
+    joiningDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    docsVerified: true,
+  }),
+  case_sample_dropout: onboardingCase({
+    caseId: 'case_sample_dropout',
+    fullName: 'Sample Dropout',
+    stage: 'dropout',
+    level: 'L1',
+    location: 'Pune',
+    hireCategory: 'campus',
+    joiningDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    docsVerified: false,
+    flags: ['dropout_risk'],
+  }),
+  case_sample_closed: onboardingCase({
+    caseId: 'case_sample_closed',
+    fullName: 'Sample Closed Case',
+    stage: 'closed',
+    level: 'L4',
+    location: 'Mumbai',
+    hireCategory: 'lateral',
+    joiningDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    docsVerified: true,
+  }),
+  case_dummy_exit_001: exitCase({
+    caseId: 'case_dummy_exit_001',
+    fullName: 'Demo Leaver',
+    employeeCode: 'EMP099',
+    stage: 'clearance_requested',
+    lastWorkingDay: new Date().toISOString(),
+    clearances: { it: 'pending', finance: 'pending', admin: 'pending', manager: 'pending' },
+  }),
+  case_sample_exit_progress: exitCase({
+    caseId: 'case_sample_exit_progress',
+    fullName: 'Sample Leaver',
+    employeeCode: 'EMP101',
+    stage: 'clearances_in_progress',
+    lastWorkingDay: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+    clearances: { it: 'done', finance: 'pending', admin: 'pending', manager: 'done' },
+  }),
+  case_sample_exit_cleared: exitCase({
+    caseId: 'case_sample_exit_cleared',
+    fullName: 'Sample Employee',
+    employeeCode: 'EMP102',
+    stage: 'all_cleared',
+    lastWorkingDay: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    clearances: { it: 'done', finance: 'done', admin: 'done', manager: 'done' },
+  }),
+  case_sample_exit_closed: exitCase({
+    caseId: 'case_sample_exit_closed',
+    fullName: 'Sample Closed Exit',
+    employeeCode: 'EMP103',
+    stage: 'closed',
+    lastWorkingDay: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    clearances: { it: 'done', finance: 'done', admin: 'done', manager: 'done' },
+  }),
+};
+
 const DUMMY_EMAILS: CaseEmailsResponse = {
   success: true,
   message: 'Dummy case emails (backend disconnected)',
@@ -149,7 +404,22 @@ export const casesApi = {
   //   ).data,
 
   // --- DUMMY implementation ---
-  detail: async (_caseId: string): Promise<CaseDetailData> => DUMMY_CASE_DETAIL,
+  detail: async (caseId: string): Promise<CaseDetailData> => {
+    if (DUMMY_CASES[caseId]) return DUMMY_CASES[caseId];
+    // Unknown id (e.g. a case just created in this dummy session): fall back to a
+    // same-shaped case instead of always showing the onboarding joiner's data.
+    if (caseId.includes('exit')) {
+      return exitCase({
+        caseId,
+        fullName: 'New Leaver',
+        employeeCode: 'EMP000',
+        stage: 'clearance_requested',
+        lastWorkingDay: new Date().toISOString(),
+        clearances: { it: 'pending', finance: 'pending', admin: 'pending', manager: 'pending' },
+      });
+    }
+    return DUMMY_CASE_DETAIL;
+  },
   update: async (caseId: string, payload: UpdateCaseRequest): Promise<CaseUpdateResponse> => ({
     success: true,
     message: 'Dummy case updated (backend disconnected)',

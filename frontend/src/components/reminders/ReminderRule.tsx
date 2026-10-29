@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileUp, Pencil } from 'lucide-react';
+import { ArrowLeft, FileUp, Pencil, X } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { BlockSkeleton, EmptyState, ErrorState, TableSkeleton } from '@/components/common/QueryState';
@@ -27,13 +28,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useUrlState } from '@/hooks/useUrlState';
 import { selectIsAdmin } from '@/redux/authSlice';
 import { useAppSelector } from '@/redux/hooks';
-import { DATA_SOURCE_LABELS } from '@/utils/labels';
 import { getErrorMessage } from '@/utils/apiError';
 import { showToast } from '@/utils/toast';
-import { formatDate, formatRelative } from '@/utils/utility';
+import { formatRelative } from '@/utils/utility';
 import { TaskStatus, type RuleTaskSortBy, type SortOrder, type UploadListData } from '@/types';
 import { ReminderRuleForm } from './ReminderRuleForm';
 import { reminderKeys, remindersApi, ruleListQuery, ruleTasksQuery } from './Remindersapi';
+
+const PAGE_HELP = [
+  { label: 'Import list', detail: "Upload a CSV or Excel file of people who need this reminder — that's who gets chased." },
+  { label: 'Open', detail: "Hasn't responded yet — still being chased." },
+  { label: 'Partial', detail: 'Did part of what was asked, not fully done yet.' },
+  { label: 'Done', detail: 'Finished — no more reminders sent.' },
+  { label: 'Blocked', detail: "Replied saying they can't do it right now (e.g. a valid reason) — chasing stopped." },
+  { label: 'Not applicable', detail: "Doesn't apply to this person — skipped." },
+  { label: 'Escalated', detail: 'No response after the maximum reminders — flagged to HR/manager.' },
+  { label: 'Paused', detail: 'Temporarily on hold (e.g. on leave) — will resume later.' },
+  { label: 'Cancelled', detail: 'This reminder was called off — no longer tracked.' },
+];
 
 export default function ReminderRule() {
   const { ruleId = '' } = useParams();
@@ -49,6 +61,9 @@ export default function ReminderRule() {
     sort_order: (get('sort_order') ?? 'latest') as SortOrder,
   };
   const tasks = useQuery({ ...ruleTasksQuery(ruleId, params), enabled: Boolean(rule) });
+  const hasFilters = Boolean(params.search || params.status || get('sort_by') || get('sort_order'));
+  const clearFilters = () =>
+    set({ search: undefined, status: undefined, sort_by: undefined, sort_order: undefined });
   if (rules.isPending) return <BlockSkeleton />;
   if (rules.isError) return <ErrorState error={rules.error} onRetry={() => rules.refetch()} />;
   if (!rule)
@@ -72,37 +87,25 @@ export default function ReminderRule() {
       </Link>
       <PageHeader
         title={rule.name}
-        description={`Source ${DATA_SOURCE_LABELS[rule.data_source]} · Runs ${rule.schedule_cron} IST · ${rule.open_tasks} open tasks`}
         actions={
-          isAdmin && (
-            <>
-              <ReminderRuleForm
-                rule={rule}
-                trigger={
-                  <Button variant="outline">
-                    <Pencil className="size-4" /> Edit
-                  </Button>
-                }
-              />
-              {rule.data_source === 'upload' && <ImportList ruleId={ruleId} />}
-            </>
-          )
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <>
+                <ReminderRuleForm
+                  rule={rule}
+                  trigger={
+                    <Button variant="outline">
+                      <Pencil className="size-4" /> Edit
+                    </Button>
+                  }
+                />
+                {rule.data_source === 'upload' && <ImportList ruleId={ruleId} />}
+              </>
+            )}
+            <HelpPopover title="What these mean" items={PAGE_HELP} />
+          </div>
         }
       />
-      <div className="mb-6 grid gap-3 panel p-5 text-sm sm:grid-cols-3 sm:p-6">
-        <div>
-          <span className="text-muted-foreground">Recipient column</span>
-          <p className="mt-1 font-mono">{rule.recipient_field}</p>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Next run</span>
-          <p className="mt-1">{formatDate(rule.next_run_at)}</p>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Required columns</span>
-          <p className="mt-1">{rule.required_columns.join(', ')}</p>
-        </div>
-      </div>
       <h2 className="mb-3 text-xl font-normal tracking-[-0.02em]">Recipients</h2>
       <FilterBar>
         <SearchInput label="Search recipients" value={params.search} onSearch={(search) => set({ search })} />
@@ -121,6 +124,12 @@ export default function ReminderRule() {
           sortOrder={params.sort_order}
           onChange={(sort_by, sort_order) => set({ sort_by, sort_order })}
         />
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
       {tasks.isPending ? (
         <TableSkeleton />

@@ -22,10 +22,7 @@ export default function InductionTemplates() {
     : InductionTrack.CAMPUS;
   return (
     <section>
-      <PageHeader
-        title="Induction plans"
-        description="The sessions the agent proposes for each joiner track. Every plan still goes to Approvals before anyone is invited. Changes apply to new plans only."
-      />
+      <PageHeader title="Induction plans" />
       <Tabs
         value={track}
         onValueChange={(value) => set({ track: value === InductionTrack.CAMPUS ? undefined : value })}

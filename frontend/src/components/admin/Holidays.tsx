@@ -47,11 +47,7 @@ export default function Holidays() {
   });
   return (
     <section>
-      <PageHeader
-        title="Holidays"
-        description="Days when the agent sends nothing and plans no induction sessions. Emails due on a holiday wait for the next working day."
-        actions={isAdmin && <AddHoliday />}
-      />
+      <PageHeader title="Holidays" actions={isAdmin && <AddHoliday />} />
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Year

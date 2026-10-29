@@ -29,7 +29,7 @@ const BAR_STYLES: Record<BarTone, string> = {
   iris: 'bg-[linear-gradient(135deg,color-mix(in_oklch,var(--iris),white_18%),var(--iris))] text-white',
   mint: 'bg-[linear-gradient(135deg,color-mix(in_oklch,var(--mint),white_12%),var(--mint))] text-white dark:text-black',
   ember: 'bg-[linear-gradient(135deg,color-mix(in_oklch,var(--ember),white_15%),var(--ember))] text-white',
-  sun: 'bg-[linear-gradient(135deg,color-mix(in_oklch,var(--sun),white_20%),var(--sun))] text-sun-foreground',
+  sun: 'bg-[linear-gradient(135deg,color-mix(in_oklch,var(--sun),white_20%),var(--sun))] text-white',
 };
 
 const LEGEND: { tone: BarTone; label: string }[] = [

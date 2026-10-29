@@ -90,23 +90,6 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-function matches(item: NavItem, pathname: string) {
-  if (item.end) return pathname === item.to;
-  return pathname === item.to || pathname.startsWith(`${item.to}/`);
-}
-
-export function activeItem(pathname: string): NavItem | undefined {
-  for (const group of NAV_GROUPS) {
-    const item = group.items.find((candidate) => matches(candidate, pathname));
-    if (item) return item;
-  }
-  return undefined;
-}
-
-export function activeGroup(pathname: string): NavGroup {
-  return NAV_GROUPS.find((group) => group.items.some((item) => matches(item, pathname))) ?? NAV_GROUPS[0];
-}
-
 // Every nav item now points at a section on the single dashboard page instead
 // of its own route, addressed by this id (e.g. "/admin/activity" -> "admin-activity").
 export function sectionId(to: string): string {
@@ -115,4 +98,23 @@ export function sectionId(to: string): string {
 
 export function sectionHref(to: string): string {
   return `/#${sectionId(to)}`;
+}
+
+// Nav highlighting follows the scroll-spied section id in redux (app.activeSection),
+// not the URL: every item lives on the same "/" route, and clicking one is just
+// a jump-start — scrolling is what actually drives which item stays highlighted.
+export function isActiveSection(to: string, activeId: string): boolean {
+  return sectionId(to) === activeId;
+}
+
+export function activeItem(activeId: string): NavItem | undefined {
+  for (const group of NAV_GROUPS) {
+    const item = group.items.find((candidate) => sectionId(candidate.to) === activeId);
+    if (item) return item;
+  }
+  return undefined;
+}
+
+export function activeGroup(activeId: string): NavGroup | undefined {
+  return NAV_GROUPS.find((group) => group.items.some((item) => sectionId(item.to) === activeId));
 }

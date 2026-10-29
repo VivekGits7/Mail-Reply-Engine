@@ -1,16 +1,36 @@
-import { CalendarClock, MailCheck, Presentation } from 'lucide-react';
-import { motion } from 'motion/react';
+import { MailCheck, Presentation } from 'lucide-react';
 import { Link } from 'react-router';
 import { SectionHeading } from '@/components/common/PageHeader';
 import { ErrorState } from '@/components/common/QueryState';
+import { TableShell } from '@/components/common/TableShell';
 import { Avatar } from '@/components/visual/Avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/utils/cn';
-import { riseIn, staggerParent } from '@/utils/animations';
-import { formatDate, formatRelative } from '@/utils/utility';
+import { formatRelative } from '@/utils/utility';
 import type { ApprovalListItem } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = { reply: 'Reply draft', induction_schedule: 'Induction plan' };
+
+// Sample rows shown only when there isn't enough real data yet, so the table preview doesn't look empty.
+const PLACEHOLDER_ITEMS: Partial<ApprovalListItem>[] = [
+  {
+    approval_id: 'sample-1',
+    approval_type: 'reply',
+    summary: 'Sample draft — query reply',
+    person_name: 'Sample Candidate',
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    approval_id: 'sample-2',
+    approval_type: 'induction_schedule',
+    summary: 'Sample draft — induction plan',
+    person_name: 'Sample Joiner',
+    created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+const MIN_ROWS = 3;
 
 interface WaitingForHrProps {
   items?: Partial<ApprovalListItem>[];
@@ -20,78 +40,91 @@ interface WaitingForHrProps {
 }
 
 export function WaitingForHr({ items, loading, error, onRetry }: WaitingForHrProps) {
+  const rows = items?.length
+    ? [...items, ...PLACEHOLDER_ITEMS.slice(0, Math.max(0, MIN_ROWS - items.length))]
+    : items;
   return (
     <section aria-labelledby="waiting-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
-      <SectionHeading id="waiting-title" title="Waiting for HR" to="/#approvals" />
+      <SectionHeading
+        id="waiting-title"
+        title="Needs your approval"
+        subtitle="AI-written replies wait here until you approve them."
+        to="/#approvals"
+      />
       {loading ? (
         <div className="space-y-2">
-          <Skeleton className="h-36 w-full rounded-3xl" />
-          <Skeleton className="h-24 w-full rounded-3xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
         </div>
       ) : error ? (
         <ErrorState error={error} onRetry={onRetry} />
-      ) : items?.length ? (
-        <motion.ul variants={staggerParent} initial="hidden" animate="show" className="flex flex-col gap-2">
-          {items.map((item, index) => {
-            const featured = index === 0;
-            const type = item.approval_type ?? 'reply';
-            const Icon = type === 'reply' ? MailCheck : Presentation;
-            return (
-              <motion.li
-                key={item.approval_id}
-                variants={riseIn}
-                className={cn(
-                  'relative rounded-3xl p-4 transition-transform duration-200 ease-(--ease-fluid) focus-within:ring-3 focus-within:ring-ring/50 hover:-translate-y-0.5',
-                  featured
-                    ? 'bg-sun text-sun-foreground shadow-[0_14px_30px_-20px_var(--sun)]'
-                    : 'panel-inset',
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <Link
-                    to={`/approvals/${item.approval_id}`}
-                    className="line-clamp-2 font-medium after:absolute after:inset-0 after:rounded-3xl focus-visible:outline-none"
-                  >
-                    {item.summary || TYPE_LABELS[type] || 'Draft to review'}
-                  </Link>
-                  {item.created_at && (
+      ) : rows?.length ? (
+        <TableShell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Draft</TableHead>
+                <TableHead>For</TableHead>
+                <TableHead>Waiting since</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((item) => {
+                const type = item.approval_type ?? 'reply';
+                const Icon = type === 'reply' ? MailCheck : Presentation;
+                const isSample = item.approval_id?.startsWith('sample-');
+                const draftplate = (
+                  <>
                     <span
                       className={cn(
-                        'inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-[0.7rem] font-medium',
-                        featured ? 'bg-white/70 text-sun-foreground' : 'pill text-muted-foreground',
+                        'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-xl',
+                        type === 'reply' ? 'bg-iris/12 text-iris' : 'bg-azure/12 text-azure',
                       )}
                     >
-                      <span className="size-1.5 rounded-full bg-current" />
-                      {formatRelative(item.created_at)}
+                      <Icon className="size-3.5" aria-hidden="true" />
                     </span>
-                  )}
-                </div>
-                {item.person_name && (
-                  <p className={cn('mt-1 text-sm', featured ? 'opacity-80' : 'text-muted-foreground')}>
-                    {item.person_name}
-                  </p>
-                )}
-                {featured && (
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex h-9 items-center gap-2 rounded-full bg-white/55 px-3 text-xs font-medium ring-1 ring-black/5">
-                      <Icon className="size-4" aria-hidden="true" />
-                      {TYPE_LABELS[type]}
-                    </span>
-                    {item.created_at && (
-                      <span className="inline-flex h-9 items-center gap-2 rounded-full bg-white/55 px-3 text-xs font-medium ring-1 ring-black/5">
-                        <CalendarClock className="size-4" aria-hidden="true" />
-                        {formatDate(item.created_at)}
+                    <span className="min-w-0">
+                      {item.summary || TYPE_LABELS[type] || 'Draft to review'}
+                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                        {TYPE_LABELS[type]}
                       </span>
-                    )}
-                    {item.person_name && (
-                      <Avatar name={item.person_name} size="sm" className="ml-auto ring-sun" />
-                    )}
-                  </div>
-                )}
-              </motion.li>
-            );
-          })}
-        </motion.ul>
+                    </span>
+                  </>
+                );
+                return (
+                  <TableRow key={item.approval_id}>
+                    <TableCell className="max-w-72 whitespace-normal">
+                      {isSample ? (
+                        <span className="flex items-start gap-2.5 font-medium">{draftplate}</span>
+                      ) : (
+                        <Link
+                          to={`/approvals/${item.approval_id}`}
+                          className="flex items-start gap-2.5 font-medium hover:text-primary hover:underline"
+                        >
+                          {draftplate}
+                        </Link>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {item.person_name ? (
+                        <span className="flex items-center gap-2">
+                          <Avatar name={item.person_name} size="sm" />
+                          {item.person_name}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      {item.created_at ? formatRelative(item.created_at) : '—'}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableShell>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-1 panel-inset px-5 py-10 text-center">
           <MailCheck className="mb-1 size-6 text-success" aria-hidden="true" />

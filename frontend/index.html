@@ -23,7 +23,7 @@
     <script>
       (function () {
         try {
-          var theme = localStorage.getItem('hr-desk-theme') || 'system';
+          var theme = localStorage.getItem('hr-desk-theme') || 'light';
           var dark =
             theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
           document.documentElement.classList.toggle('dark', dark);

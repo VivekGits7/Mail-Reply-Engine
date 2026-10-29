@@ -84,6 +84,83 @@ const DUMMY_ACTION_LOG: ActionLogItem[] = [
     entity_id: 'task_dummy_001',
     details: { channel: 'email' },
   },
+  {
+    action_log_id: 'log_sample_user',
+    occurred_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    actor_type: 'user',
+    actor_name: 'Demo HR',
+    action: 'signed_off_joiner',
+    case_id: 'case_dummy_001',
+    entity_type: 'case',
+    entity_id: 'case_dummy_001',
+    details: {},
+  },
+  {
+    action_log_id: 'log_sample_system',
+    occurred_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    actor_type: 'system',
+    actor_name: 'Scheduler',
+    action: 'renewed_mailbox_subscription',
+    case_id: null,
+    entity_type: null,
+    entity_id: null,
+    details: {},
+  },
+  {
+    action_log_id: 'log_sample_agent_doc',
+    occurred_at: new Date(Date.now() - 9 * 60 * 60 * 1000).toISOString(),
+    actor_type: 'agent',
+    actor_name: 'Automation',
+    action: 'verified_document',
+    case_id: 'case_sample_signoff',
+    entity_type: 'checklist_item',
+    entity_id: 'chk_case_sample_signoff',
+    details: { document_type: 'pan_card' },
+  },
+  {
+    action_log_id: 'log_sample_agent_it',
+    occurred_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    actor_type: 'agent',
+    actor_name: 'Automation',
+    action: 'sent_it_setup_request',
+    case_id: 'case_sample_it',
+    entity_type: 'task',
+    entity_id: 'task_case_sample_it',
+    details: { channel: 'email' },
+  },
+  {
+    action_log_id: 'log_sample_user_edit',
+    occurred_at: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
+    actor_type: 'user',
+    actor_name: 'Demo HR',
+    action: 'updated_joiner_details',
+    case_id: 'case_sample_requested',
+    entity_type: 'case',
+    entity_id: 'case_sample_requested',
+    details: {},
+  },
+  {
+    action_log_id: 'log_sample_agent_approval',
+    occurred_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    actor_type: 'agent',
+    actor_name: 'Automation',
+    action: 'drafted_reply_for_approval',
+    case_id: 'case_dummy_001',
+    entity_type: 'approval',
+    entity_id: 'sample-pending',
+    details: {},
+  },
+  {
+    action_log_id: 'log_sample_system_retry',
+    occurred_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
+    actor_type: 'system',
+    actor_name: 'Scheduler',
+    action: 'retried_failed_send',
+    case_id: null,
+    entity_type: null,
+    entity_id: null,
+    details: {},
+  },
 ];
 
 const DUMMY_FAILURES: FailureItem[] = [
@@ -95,6 +172,24 @@ const DUMMY_FAILURES: FailureItem[] = [
     attempts: 2,
     last_error: 'Dummy failure (backend disconnected)',
     updated_at: new Date().toISOString(),
+  },
+  {
+    failure_id: 'fail_sample_email_read',
+    kind: 'event',
+    event_type: 'email.received',
+    case_id: 'case_sample_signoff',
+    attempts: 3,
+    last_error: 'Sample failure — could not parse the incoming email (backend disconnected)',
+    updated_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    failure_id: 'fail_sample_doc_check',
+    kind: 'event',
+    event_type: 'documents.check',
+    case_id: 'case_sample_it',
+    attempts: 1,
+    last_error: 'Sample failure — document check timed out (backend disconnected)',
+    updated_at: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -168,6 +263,8 @@ export const adminApi = {
   // previewTemplate: async (templateKey: string, values: Record<string, unknown>) =>
   //   (await axiosInstance.post<PreviewResponse>(`/api/templates/${templateKey}/preview`, { values })).data
   //     .data,
+  // createTemplate: async (payload: { template_key: string; name: string; subject: string }) =>
+  //   (await axiosInstance.post<TemplateResponse>('/api/templates', payload)).data,
 
   // --- DUMMY implementation ---
   status: async (): Promise<StatusResponse['data']> => ({
@@ -231,22 +328,48 @@ export const adminApi = {
     data: { holiday_id: `hol_dummy_${Date.now()}`, holiday_date: payload.holiday_date, name: payload.name, location: payload.location ?? null },
   }),
   deleteHoliday: async (_holidayId: string): Promise<void> => {},
-  actionLog: async (_params: ActionLogParams): Promise<ActionLogListResponse> => ({
-    success: true,
-    message: 'Dummy action log (backend disconnected)',
-    total: DUMMY_ACTION_LOG.length,
-    limit: 20,
-    offset: 0,
-    data: DUMMY_ACTION_LOG,
-  }),
-  failures: async (_params: FailureParams): Promise<FailureListResponse> => ({
-    success: true,
-    message: 'Dummy failures (backend disconnected)',
-    total: DUMMY_FAILURES.length,
-    limit: 20,
-    offset: 0,
-    data: DUMMY_FAILURES,
-  }),
+  actionLog: async (params: ActionLogParams): Promise<ActionLogListResponse> => {
+    const action = params.action?.trim().toLowerCase();
+    const filtered = DUMMY_ACTION_LOG.filter(
+      (item) =>
+        (!action || item.action.toLowerCase().includes(action)) &&
+        (!params.actor_type || item.actor_type === params.actor_type) &&
+        (!params.case_id || item.case_id === params.case_id) &&
+        (!params.date_from || item.occurred_at >= params.date_from) &&
+        (!params.date_to || item.occurred_at <= params.date_to),
+    );
+    const sorted = [...filtered].sort((a, b) => {
+      const diff = new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime();
+      return params.sort_order === 'oldest' ? diff : -diff;
+    });
+    const limit = params.limit ?? 20;
+    const offset = params.offset ?? 0;
+    return {
+      success: true,
+      message: 'Dummy action log (backend disconnected)',
+      total: sorted.length,
+      limit,
+      offset,
+      data: sorted.slice(offset, offset + limit),
+    };
+  },
+  failures: async (params: FailureParams): Promise<FailureListResponse> => {
+    const filtered = DUMMY_FAILURES.filter(
+      (item) =>
+        (!params.kind || item.kind === params.kind) &&
+        (!params.event_type || item.event_type === params.event_type),
+    );
+    const limit = params.limit ?? 20;
+    const offset = params.offset ?? 0;
+    return {
+      success: true,
+      message: 'Dummy failures (backend disconnected)',
+      total: filtered.length,
+      limit,
+      offset,
+      data: filtered.slice(offset, offset + limit),
+    };
+  },
   retryFailure: async (failureId: string, kind: FailureKind): Promise<RetryResponse> => ({
     success: true,
     message: 'Dummy retry queued (backend disconnected)',
@@ -286,6 +409,23 @@ export const adminApi = {
   ): Promise<PreviewResponse['data']> => ({
     subject: 'Welcome to the team, Demo User!',
     body_html: '<p>Dummy preview body (backend disconnected)</p>',
+  }),
+  createTemplate: async (payload: {
+    template_key: string;
+    name: string;
+    subject: string;
+  }): Promise<TemplateResponse> => ({
+    success: true,
+    message: 'Dummy template created (backend disconnected)',
+    data: {
+      template_key: payload.template_key,
+      name: payload.name,
+      subject: payload.subject,
+      placeholders: [],
+      is_active: true,
+      updated_at: new Date().toISOString(),
+      body_html: '<p>Write your email body here.</p>',
+    },
   }),
 };
 

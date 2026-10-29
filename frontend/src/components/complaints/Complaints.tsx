@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileUp } from 'lucide-react';
+import { FileUp, X } from 'lucide-react';
 import { OpenFileButton } from '@/components/cases/OpenFileButton';
 import { DateRange } from '@/components/common/DateRange';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/QueryState';
@@ -40,6 +41,26 @@ import {
 } from '@/types';
 import { complaintDetailQuery, complaintKeys, complaintListQuery, complaintsApi } from './Complaintsapi';
 
+const COMPLAINTS_HELP = [
+  {
+    label: 'What this is',
+    detail:
+      'When an employee emails in a grievance or complaint, the agent stores it here instead of replying — a human always handles these, not the AI.',
+  },
+  {
+    label: 'Restricted',
+    detail: 'Only specially authorised HR staff can see this page. It never shows up on a case timeline.',
+  },
+  {
+    label: 'Source',
+    detail: 'Where this came in from — an email, or a transcript someone uploaded (exit interview, HR Connect call).',
+  },
+  {
+    label: 'Add transcript',
+    detail: 'Upload an exit-interview or HR Connect call transcript to keep alongside complaints.',
+  },
+];
+
 export default function Complaints() {
   const { get, set, page } = useUrlState();
   const params = {
@@ -52,12 +73,21 @@ export default function Complaints() {
   };
   const list = useQuery(complaintListQuery(params));
   const selected = get('complaint');
+  const hasFilters = Boolean(
+    params.search || params.source || params.date_from || params.date_to || get('sort_order'),
+  );
+  const clearFilters = () =>
+    set({ search: undefined, source: undefined, date_from: undefined, date_to: undefined, sort_order: undefined });
   return (
     <section>
       <PageHeader
         title="Complaints"
-        description="Restricted reports for authorised HR staff. These records never appear in case timelines."
-        actions={<UploadTranscript />}
+        actions={
+          <div className="flex items-center gap-2">
+            <UploadTranscript />
+            <HelpPopover title="What this page is" items={COMPLAINTS_HELP} />
+          </div>
+        }
       />
       <FilterBar>
         <SearchInput label="Search complaints" value={params.search} onSearch={(search) => set({ search })} />
@@ -81,6 +111,12 @@ export default function Complaints() {
           sortOrder={params.sort_order}
           onChange={(_sortBy, sort_order) => set({ sort_order })}
         />
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
       {list.isPending ? (
         <TableSkeleton />

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CircleAlert, RotateCw } from 'lucide-react';
+import { CircleAlert, RotateCw, X } from 'lucide-react';
 import { Link } from 'react-router';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { FilterBar } from '@/components/common/FilterBar';
 import { FilterSelect } from '@/components/common/FilterSelect';
+import { HelpPopover } from '@/components/common/HelpPopover';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/common/QueryState';
@@ -50,6 +51,25 @@ const CAUSE_BANNERS: Partial<Record<FailureCause, { title: string; detail: strin
   },
 };
 
+const FAILURES_HELP = [
+  {
+    label: 'What this is',
+    detail: "Work the agent tried several times and couldn't finish — like an email that wouldn't send. It stops retrying automatically after a few tries and lands here.",
+  },
+  {
+    label: 'Event',
+    detail: 'Triggered by something that just happened — an incoming email, or an HR action on the dashboard.',
+  },
+  {
+    label: 'Scheduled job',
+    detail: 'Something the system does on its own timer, like a follow-up reminder or a daily check.',
+  },
+  {
+    label: 'Retry',
+    detail: "Puts it back in the queue to try again now. If the underlying cause isn't fixed, it will fail again.",
+  },
+];
+
 export default function Failures() {
   const { get, set, page } = useUrlState();
   const isAdmin = useAppSelector(selectIsAdmin);
@@ -62,10 +82,7 @@ export default function Failures() {
 
   return (
     <section>
-      <PageHeader
-        title="Failures"
-        description="Work the agent tried several times and could not finish, like an email that would not send. Each row says why. Fix the cause, then retry."
-      />
+      <PageHeader title="Failures" actions={<HelpPopover title="What this page is" items={FAILURES_HELP} />} />
       <FilterBar>
         <FilterSelect
           label="Work"
@@ -81,6 +98,12 @@ export default function Failures() {
           options={Object.values(FailureKind).map((value) => ({ value, label: FAILURE_KIND_LABELS[value] }))}
           onChange={(kind) => set({ kind })}
         />
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={() => set({ kind: undefined, event_type: undefined })}>
+            <X aria-hidden="true" />
+            Clear filters
+          </Button>
+        )}
       </FilterBar>
       {banner && (
         <div

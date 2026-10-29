@@ -15,7 +15,10 @@ export const TONE_STYLES: Record<VisualTone, { solid: string; soft: string; text
     fill: 'var(--mint)',
   },
   sun: {
-    solid: 'bg-sun text-sun-foreground',
+    // sun now aliases destructive (see index.css), so it needs the same
+    // white-on-solid treatment as ember/azure/iris instead of the dark text
+    // that worked when this was yellow.
+    solid: 'bg-sun text-white',
     soft: 'bg-sun/25 text-sun-foreground dark:text-sun',
     text: 'text-warning',
     fill: 'var(--sun)',

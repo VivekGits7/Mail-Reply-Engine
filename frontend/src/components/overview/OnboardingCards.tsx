@@ -1,14 +1,33 @@
-import { FileCheck2 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { Link } from 'react-router';
+import { DocProgress } from '@/components/common/DocProgress';
 import { SectionHeading } from '@/components/common/PageHeader';
 import { ErrorState } from '@/components/common/QueryState';
+import { TableShell } from '@/components/common/TableShell';
 import { Avatar } from '@/components/visual/Avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/utils/cn';
-import { riseIn, staggerParent } from '@/utils/animations';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDate } from '@/utils/utility';
 import type { JoinerListItem } from '@/types';
+
+// Sample rows shown only when there isn't enough real data yet, so the table preview doesn't look empty.
+const PLACEHOLDER_ITEMS: Partial<JoinerListItem>[] = [
+  {
+    case_id: 'sample-1',
+    full_name: 'Sample Joiner',
+    joining_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    docs_verified: 1,
+    docs_total: 3,
+  },
+  {
+    case_id: 'sample-2',
+    full_name: 'Sample Candidate',
+    joining_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+    docs_verified: 0,
+    docs_total: 3,
+  },
+];
+
+const MIN_ROWS = 3;
 
 interface OnboardingCardsProps {
   items?: Partial<JoinerListItem>[];
@@ -18,59 +37,70 @@ interface OnboardingCardsProps {
 }
 
 export function OnboardingCards({ items, loading, error, onRetry }: OnboardingCardsProps) {
+  const rows = items?.length
+    ? [...items, ...PLACEHOLDER_ITEMS.slice(0, Math.max(0, MIN_ROWS - items.length))]
+    : items;
   return (
     <section aria-labelledby="onboarding-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
-      <SectionHeading id="onboarding-title" title="Onboarding" to="/#joiners" />
+      <SectionHeading
+        id="onboarding-title"
+        title="New joiners"
+        subtitle="Document checklist progress for each new hire."
+        to="/#joiners"
+      />
       {loading ? (
-        <div className="grid grid-cols-2 gap-2">
-          {Array.from({ length: 4 }, (_, index) => (
-            <Skeleton key={index} className="h-44 rounded-3xl" />
-          ))}
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
         </div>
       ) : error ? (
         <ErrorState error={error} onRetry={onRetry} />
-      ) : items?.length ? (
-        <motion.ul
-          variants={staggerParent}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-2 gap-2"
-        >
-          {items.map((item) => {
-            const verified = item.docs_verified ?? 0;
-            const total = item.docs_total ?? 0;
-            const done = total > 0 && verified >= total;
-            return (
-              <motion.li
-                key={item.case_id}
-                variants={riseIn}
-                className="relative flex flex-col items-center rounded-3xl bg-card px-3 pt-5 pb-4 text-center shadow-[var(--pill-shadow)] ring-1 ring-border/60 transition-transform duration-200 ease-(--ease-fluid) focus-within:ring-3 focus-within:ring-ring/50 hover:-translate-y-0.5"
-              >
-                <Avatar name={item.full_name ?? 'Joiner'} size="lg" />
-                <Link
-                  to={`/cases/${item.case_id}`}
-                  className="mt-3 line-clamp-1 font-medium after:absolute after:inset-0 after:rounded-3xl focus-visible:outline-none"
-                >
-                  {item.full_name}
-                </Link>
-                <span className="line-clamp-1 text-xs text-muted-foreground">
-                  {item.joining_date
-                    ? `Joins ${formatDate(item.joining_date)}`
-                    : [item.level, item.location].filter(Boolean).join(' · ') || 'Joining date not set'}
-                </span>
-                <span
-                  className={cn(
-                    'mt-3 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium tabular-nums',
-                    done ? 'bg-mint/15 text-success' : 'pressed text-muted-foreground',
-                  )}
-                >
-                  <FileCheck2 className="size-3.5" aria-hidden="true" />
-                  {verified}/{total} docs done
-                </span>
-              </motion.li>
-            );
-          })}
-        </motion.ul>
+      ) : rows?.length ? (
+        <TableShell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Joiner</TableHead>
+                <TableHead>Joining</TableHead>
+                <TableHead>Documents</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((item) => {
+                const isSample = item.case_id?.startsWith('sample-');
+                const nameplate = (
+                  <>
+                    <Avatar name={item.full_name ?? 'Joiner'} size="sm" />
+                    <span className="min-w-0 truncate">{item.full_name}</span>
+                  </>
+                );
+                return (
+                  <TableRow key={item.case_id}>
+                    <TableCell className="max-w-64 whitespace-normal">
+                      {isSample ? (
+                        <span className="flex items-center gap-3 font-medium">{nameplate}</span>
+                      ) : (
+                        <Link
+                          to={`/cases/${item.case_id}`}
+                          className="flex items-center gap-3 font-medium hover:text-primary hover:underline"
+                        >
+                          {nameplate}
+                        </Link>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.joining_date ? formatDate(item.joining_date) : 'Not set'}
+                    </TableCell>
+                    <TableCell>
+                      <DocProgress verified={item.docs_verified ?? 0} total={item.docs_total ?? 0} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableShell>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-1 panel-inset px-5 py-10 text-center">
           <p className="text-sm font-medium">No joiners yet</p>

@@ -89,14 +89,21 @@
   --accent-foreground: oklch(0.4 0.14 263);
   --destructive: oklch(0.58 0.21 25);
   --success: oklch(0.55 0.14 152);
-  --warning: oklch(0.6 0.14 68);
-  --info: oklch(0.56 0.17 263);
-  --azure: oklch(0.62 0.19 263);
-  --iris: oklch(0.6 0.21 290);
-  --mint: oklch(0.73 0.16 152);
-  --sun: oklch(0.88 0.15 95);
-  --sun-foreground: oklch(0.32 0.06 85);
-  --ember: oklch(0.67 0.19 38);
+  /* Site-wide palette is just primary (blue), success (green) and destructive
+     (red). These legacy token names stay so every existing bg-azure/text-sun/
+     etc. class still resolves, but they now alias one of the three. */
+  --warning: var(--destructive);
+  --info: var(--primary);
+  --azure: var(--primary);
+  /* A darker shade of the same blue, not a second hue — keeps multi-segment
+     breakdowns (e.g. azure "requested" vs iris "in progress") tellable
+     apart instead of rendering as one identical bar. */
+  --iris: color-mix(in oklch, var(--primary), black 18%);
+  --mint: var(--success);
+  --sun: var(--destructive);
+  --sun-foreground: oklch(0.35 0.18 25);
+  /* Same idea as iris above: a darker red, not a 4th/5th hue. */
+  --ember: color-mix(in oklch, var(--destructive), black 15%);
   --border: oklch(0.915 0.006 262);
   --input: oklch(0.9 0.008 262);
   --ring: oklch(0.62 0.17 263);
@@ -139,27 +146,31 @@
   --card-foreground: oklch(0.94 0.003 285);
   --popover: oklch(0.225 0.006 285);
   --popover-foreground: oklch(0.94 0.003 285);
-  --primary: oklch(0.72 0.15 288);
-  --primary-foreground: oklch(0.17 0.02 288);
+  /* Dark mode used to default to a purple primary (hue 288) while light mode
+     was blue (hue 263) — two different brand colors depending on theme. Now
+     both use the same blue hue, reusing the old azure-dark tuning. */
+  --primary: oklch(0.7 0.15 263);
+  --primary-foreground: oklch(0.17 0.02 263);
   --secondary: oklch(0.25 0.006 285);
   --secondary-foreground: oklch(0.94 0.003 285);
   --muted: oklch(0.245 0.006 285);
   --muted-foreground: oklch(0.67 0.01 285);
-  --accent: oklch(0.28 0.03 288);
-  --accent-foreground: oklch(0.88 0.06 288);
+  --accent: oklch(0.28 0.03 263);
+  --accent-foreground: oklch(0.88 0.06 263);
   --destructive: oklch(0.68 0.19 30);
   --success: oklch(0.78 0.15 152);
-  --warning: oklch(0.86 0.15 92);
-  --info: oklch(0.74 0.13 263);
-  --azure: oklch(0.7 0.15 263);
-  --iris: oklch(0.72 0.15 288);
-  --mint: oklch(0.78 0.15 152);
-  --sun: oklch(0.89 0.16 97);
-  --sun-foreground: oklch(0.24 0.04 90);
-  --ember: oklch(0.66 0.2 35);
+  /* See the :root block: these all alias primary/success/destructive now. */
+  --warning: var(--destructive);
+  --info: var(--primary);
+  --azure: var(--primary);
+  --iris: color-mix(in oklch, var(--primary), black 18%);
+  --mint: var(--success);
+  --sun: var(--destructive);
+  --sun-foreground: oklch(0.32 0.08 30);
+  --ember: color-mix(in oklch, var(--destructive), black 15%);
   --border: oklch(1 0 0 / 7%);
   --input: oklch(1 0 0 / 11%);
-  --ring: oklch(0.66 0.13 288);
+  --ring: oklch(0.68 0.13 263);
   --chart-1: var(--iris);
   --chart-2: var(--azure);
   --chart-3: var(--mint);
@@ -179,12 +190,12 @@
     0 10px 22px -12px color-mix(in oklch, var(--primary) 60%, transparent);
   --sidebar: oklch(0.205 0.005 285);
   --sidebar-foreground: oklch(0.9 0.004 285);
-  --sidebar-primary: oklch(0.72 0.15 288);
-  --sidebar-primary-foreground: oklch(0.17 0.02 288);
+  --sidebar-primary: oklch(0.7 0.15 263);
+  --sidebar-primary-foreground: oklch(0.17 0.02 263);
   --sidebar-accent: oklch(0.26 0.007 285);
   --sidebar-accent-foreground: oklch(0.94 0.003 285);
   --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-ring: oklch(0.66 0.13 288);
+  --sidebar-ring: oklch(0.68 0.13 263);
 }
 
 @utility panel {

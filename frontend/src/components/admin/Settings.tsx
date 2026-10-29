@@ -148,10 +148,7 @@ export default function Settings() {
 
   return (
     <section>
-      <PageHeader
-        title="Settings"
-        description="The rules the agent follows: follow-up timing, sending hours, thresholds and the team addresses it emails. The kill switch and dry run are on Controls."
-      />
+      <PageHeader title="Settings" />
       {!isAdmin && (
         <p className="mb-4 rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
           You can see every setting. Only HR admins can change them.
