@@ -7,8 +7,7 @@ FastAPI backend for automated HR email handling, onboarding, exits and follow-up
 Requires Python 3.11+, PostgreSQL and the dependencies in `pyproject.toml`. Run commands from this directory using the configured Python environment.
 
 1. Create `.env` from `.env.example` and configure the database, storage and external services.
-2. Initialize a fresh database using the SQL files in [schema order](database/schema_order.txt).
-3. Create an admin account and start the API:
+2. Create an admin account and start the API:
 
 ```bash
 guvrun scripts/create_admin.py --name "Admin" --email admin@example.com

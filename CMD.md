@@ -4,27 +4,31 @@ Each service reads `.env`. To use its saved VM settings, copy `vm.env` to `.env`
 
 ## MinIO
 
-### Ports
-
-Set these values in `services/minio/.env` on the VM. Compose reads `.env` directly.
-
-```env
-MINIO_API_BIND=0.0.0.0
-MINIO_API_PORT=2103
-MINIO_CONSOLE_BIND=0.0.0.0
-MINIO_CONSOLE_PORT=2104
-```
-
-MinIO logs its internal ports `9000/9001`. Docker publishes them as `2103/2104` on the VM.
-
 ### Redeploy
 
+Update the VM checkout first. `--build` uses the latest code, `--force-recreate` reloads `.env`, and `--wait` waits for MinIO health. `minio-init` configures the encrypted private bucket and app access, then removes itself.
+
 ```bash
-cd /home/appadmin/mail-reply-engine/services/minio   # go to the MinIO folder
-docker compose up -d --build minio                  # build and start MinIO, keeping its volume and network
-docker compose run --rm minio-init                 # initialize the encrypted bucket and app user
-docker compose up -d --force-recreate minio         # reload .env
-docker compose ps                                 # show container status
+cd /home/appadmin/mail-reply-engine/services/minio
+unset MINIO_API_PORT MINIO_CONSOLE_PORT MINIO_API_BIND MINIO_CONSOLE_BIND
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --wait --wait-timeout 60 minio
+docker compose --env-file .env -f docker-compose.yml run --rm minio-init
+docker compose --env-file .env -f docker-compose.yml ps
+docker port mail-reply-engine-minio
+```
+
+### Stop and rebuild
+
+Remove existing containers before rebuilding. Omit `-v` from `down` to preserve the storage volume and its files.
+
+```bash
+cd /home/appadmin/mail-reply-engine/services/minio
+unset MINIO_API_PORT MINIO_CONSOLE_PORT MINIO_API_BIND MINIO_CONSOLE_BIND
+docker compose --env-file .env -f docker-compose.yml down --remove-orphans
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --wait --wait-timeout 60 minio
+docker compose --env-file .env -f docker-compose.yml run --rm minio-init
+docker compose --env-file .env -f docker-compose.yml ps
+docker port mail-reply-engine-minio
 ```
 
 ### Logs
@@ -57,11 +61,25 @@ docker compose logs -f --tail 100 mail-reply-engine-backend
 
 ### Initialize a fresh database
 
-Skip database creation if `mail_reply_engine` already exists. Use the server's existing database admin role if it differs from `postgres`.
+Skip creation if the database already exists. This command reads the name, user, port and password from `.env` through Compose and creates the database inside `doe-postgres`, owned by the configured user. That user must have `CREATEDB` permission.
 
 ```bash
 cd /home/appadmin/mail-reply-engine/backend
-docker exec -it doe-postgres createdb -U postgres -O kuberyauser mail_reply_engine
+docker compose --env-file .env -f docker-compose.yml config --format json | python3 -c '
+import json
+import os
+import subprocess
+import sys
+
+db = json.load(sys.stdin)["services"]["mail-reply-engine-backend"]["environment"]
+os.environ["PGPASSWORD"] = db["POSTGRES_DB_PASSWORD"]
+subprocess.run([
+    "docker", "exec", "--env", "PGPASSWORD", "doe-postgres",
+    "createdb", "--host", "127.0.0.1", "--port", str(db["POSTGRES_DB_PORT"]),
+    "--username", db["POSTGRES_DB_USER"], "--owner", db["POSTGRES_DB_USER"],
+    "--no-password", "--", db["POSTGRES_DB_NAME"],
+], check=True)
+'
 bash database/run_migration.sh --dry-run             # preview schema files in dependency order
 bash database/run_migration.sh                       # run the SQL files in schema order
 ```
@@ -74,7 +92,7 @@ bash database/run_migration.sh --dry-run auth.sql people.sql
 bash database/run_migration.sh auth.sql people.sql
 ```
 
-The runner reads `.sql` files directly from `backend/database/` and targets `doe-postgres`, database `mail_reply_engine`, user `kuberyauser`. With no filenames, it follows `schema_order.txt`. It stops at the first SQL error. These schema files create missing tables; they do not automatically change existing columns.
+The runner reads `.sql` files directly from `backend/database/` and loads database credentials from `backend/.env` through Compose. It connects over TCP inside `doe-postgres` and checks the login before running SQL. Set `POSTGRES_DB_USER` to a role that already exists on the server, with the matching password. With no filenames, it follows `schema_order.txt` and applies all files in one transaction. It stops at the first error. These schema files create missing tables; they do not automatically change existing columns.
 
 ### Create an admin
 
