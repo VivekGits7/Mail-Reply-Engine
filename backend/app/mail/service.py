@@ -134,6 +134,18 @@ async def _files(outbound: Outbound) -> List[tuple[str, str, bytes]]:
 async def deliver(
     outbound: Outbound, dedupe_key: str, now: Optional[datetime] = None
 ) -> DeliveryResult:
+    result = await _deliver(outbound, dedupe_key, now)
+    if result.status in ("deferred", "held", "duplicate"):
+        retry = f", next try at {result.run_at.isoformat()}" if result.run_at else ""
+        logger.info(
+            f"Email {outbound.template_key or dedupe_key} {result.status}, {result.reason}{retry}"
+        )
+    return result
+
+
+async def _deliver(
+    outbound: Outbound, dedupe_key: str, now: Optional[datetime] = None
+) -> DeliveryResult:
     now = now or utcnow()
     rs = await runtime.current()
     to = clean_addresses(outbound.to)

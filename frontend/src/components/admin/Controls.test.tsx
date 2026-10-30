@@ -71,11 +71,11 @@ describe('Controls', () => {
     const user = userEvent.setup();
     api.status = { ...STATUS, test_inbox: '' };
     renderWithProviders(<Controls />);
-    expect(await screen.findByText(/No test inbox is set, so every email is on hold/)).toBeInTheDocument();
+    expect(await screen.findByText(/No test inbox set/)).toBeInTheDocument();
     const field = screen.getByLabelText('Test inbox');
     await user.type(field, 'not-an-email');
     await user.click(screen.getByRole('button', { name: 'Save test inbox' }));
-    expect(await screen.findByText('Enter an email address like hr-test@tcgdigital.com')).toBeInTheDocument();
+    expect(await screen.findByText('Enter a valid email like hr-test@tcgdigital.com')).toBeInTheDocument();
     expect(field).toHaveAttribute('aria-invalid', 'true');
     expect(api.dryRun).not.toHaveBeenCalled();
 
@@ -90,7 +90,7 @@ describe('Controls', () => {
   it('shows viewers the state without any switches', async () => {
     signIn('hr_viewer');
     renderWithProviders(<Controls />);
-    expect(await screen.findByText(/Only HR admins can change these switches/)).toBeInTheDocument();
+    expect(await screen.findByText(/only HR admins can change these switches/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Stop sending' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Test inbox')).not.toBeInTheDocument();
   });

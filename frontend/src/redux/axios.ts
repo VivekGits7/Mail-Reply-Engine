@@ -8,7 +8,7 @@ export function setTokenGetter(fn: () => string | null) {
 }
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_REACT_APP_API_URL,
+  baseURL: import.meta.env.APP_API_URL,
   timeout: 30_000,
 });
 

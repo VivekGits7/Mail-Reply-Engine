@@ -1,66 +1,43 @@
+name: mail-reply-engine-backend
+
 services:
-  mail-reply-engine-api:
+  mail-reply-engine-backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mail-reply-engine-api
+    image: tcg-mail-reply-engine-backend:latest
+    container_name: mail-reply-engine-backend
     env_file:
       - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: ${BACKEND_PORT:-2101}
+      ENVIRONMENT: ${DOCKER_ENVIRONMENT:-development}
+      EVENT_DISPATCH_MODE: inline
+      POSTGRES_DB_HOST: ${DOCKER_POSTGRES_HOST:-doe-postgres}
+      POSTGRES_DB_PORT: ${DOCKER_POSTGRES_PORT:-5432}
+      S3_ENDPOINT_URL: http://mail-reply-engine-minio:9000
+    command: ["app.main:app", "--host", "0.0.0.0", "--port", "${BACKEND_PORT:-2101}", "--workers", "1"]
     ports:
-      - "8000:8000"
-    depends_on:
-      - mail-reply-engine-redis
-    networks:
-      - mail-reply-engine-net
-      - mail-reply-engine-network
-    restart: unless-stopped
-
-  mail-reply-engine-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: mail-reply-engine-worker
-    entrypoint: ["/app/.venv/bin/celery"]
-    command: ["-A", "app.worker.celery_app:celery_app", "worker", "-Q", "events,documents", "--concurrency", "4", "--loglevel", "INFO"]
-    env_file:
-      - .env
-    depends_on:
-      - mail-reply-engine-redis
-    networks:
-      - mail-reply-engine-net
-      - mail-reply-engine-network
-    restart: unless-stopped
-
-  mail-reply-engine-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: mail-reply-engine-beat
-    entrypoint: ["/app/.venv/bin/celery"]
-    command: ["-A", "app.worker.celery_app:celery_app", "beat", "--loglevel", "INFO", "--schedule", "/tmp/celerybeat-schedule"]
-    env_file:
-      - .env
-    depends_on:
-      - mail-reply-engine-redis
-    networks:
-      - mail-reply-engine-net
-    restart: unless-stopped
-
-  mail-reply-engine-redis:
-    image: redis:8-alpine
-    container_name: mail-reply-engine-redis
-    command: ["redis-server", "--appendonly", "yes"]
+      - "${BACKEND_BIND:-0.0.0.0}:${BACKEND_PORT:-2101}:${BACKEND_PORT:-2101}"
     volumes:
-      - redis-data:/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "5", "http://localhost:${BACKEND_PORT:-2101}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
-      - mail-reply-engine-net
+      - mail-reply-engine-network
+      - db-network
     restart: unless-stopped
-
-volumes:
-  redis-data:
+    stop_grace_period: 30s
 
 networks:
-  mail-reply-engine-net:
-    driver: bridge
   mail-reply-engine-network:
+    name: ${APP_NETWORK:-${MINIO_NETWORK:-mail-reply-engine-network}}
+    external: true
+  db-network:
+    name: ${DB_NETWORK:-doe-net}
     external: true

@@ -27,8 +27,8 @@ import { exitListQuery } from './Exitsapi';
 
 const SORT_OPTIONS: SortOption[] = [
   { label: 'Newest first', sort_by: 'created_at', sort_order: 'latest' },
-  { label: 'Last day soonest', sort_by: 'last_working_day', sort_order: 'oldest' },
-  { label: 'Last day latest', sort_by: 'last_working_day', sort_order: 'latest' },
+  { label: 'Last day soonest', sort_by: 'last_working_day', sort_order: 'a_to_z' },
+  { label: 'Last day latest', sort_by: 'last_working_day', sort_order: 'z_to_a' },
   { label: 'Name A to Z', sort_by: 'full_name', sort_order: 'a_to_z' },
 ];
 

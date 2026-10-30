@@ -557,7 +557,7 @@ async def check_attachment(attachment_id: uuid.UUID) -> None:
     )
     if not rs.document_reading_enabled:
         if photo_item and looks_like_photo(
-            attachment.file_name, attachment.mime_type, 0
+            attachment.file_name, attachment.mime_type, None
         ):
             await _link(photo_item, attachment, ChecklistStatus.RECEIVED)
             await _use_passport_photo(person, attachment)
@@ -579,7 +579,9 @@ async def check_attachment(attachment_id: uuid.UUID) -> None:
         await storage.get_bytes(attachment.storage_key), attachment.mime_type
     )
     if photo_item and looks_like_photo(
-        attachment.file_name, attachment.mime_type, document.chars
+        attachment.file_name,
+        attachment.mime_type,
+        None if document.method == "ocr_unavailable" else document.chars,
     ):
         await _link(photo_item, attachment, ChecklistStatus.RECEIVED)
         await _use_passport_photo(person, attachment)

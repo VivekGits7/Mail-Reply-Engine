@@ -1,7 +1,7 @@
 interface ImportMetaEnv {
-  readonly VITE_REACT_APP_URL: string;
-  readonly VITE_REACT_APP_API_URL: string;
-  readonly VITE_APP_ENV: 'development' | 'staging' | 'production';
+  readonly APP_URL: string;
+  readonly APP_API_URL: string;
+  readonly APP_ENV: 'development' | 'staging' | 'production';
 }
 
 interface ImportMeta {

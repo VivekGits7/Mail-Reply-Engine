@@ -181,10 +181,10 @@ function CaseView({ data }: { data: CaseDetailData }) {
                 {caseData.status !== 'open' && <StatusBadge value={caseData.status} />}
                 <CaseFlags caseId={caseData.case_id} flags={caseData.flags} canClear={isAdmin} />
               </div>
-              {caseData.case_type === 'exit' && caseData.last_working_day && (
+              {caseData.case_type === 'exit' && person.last_working_day && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Last working day {formatDate(caseData.last_working_day)} ·{' '}
-                  {formatRelative(caseData.last_working_day)}
+                  Last working day {formatDate(person.last_working_day)} ·{' '}
+                  {formatRelative(person.last_working_day)}
                 </p>
               )}
               {data.next_followup_at && ACTIVE.has(caseData.status) && (
@@ -574,7 +574,7 @@ function CaseDetailsSection({ data }: { data: CaseDetailData }) {
             <DetailCard
               icon={Calendar}
               label="Last working day"
-              value={caseData.last_working_day ? formatDate(caseData.last_working_day) : null}
+              value={person.last_working_day ? formatDate(person.last_working_day) : null}
             />
           )}
           {caseData.closed_at && (

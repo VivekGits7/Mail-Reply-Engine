@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 from typing import Any, Optional, Type, TypeVar
 
@@ -60,6 +61,8 @@ async def parse(
             f"AI helper {helper} blocked, personal data still present: {', '.join(found)}"
         )
         raise PIIGuardError(found)
+    if settings.LOG_AI_PAYLOADS:
+        logger.info(f"AI helper {helper} request:\n{masked_input}")
     client = get_client()
     started = time.perf_counter()
     for attempt in range(MAX_RETRIES):
@@ -78,13 +81,25 @@ async def parse(
             if parsed is None:
                 raise AIServiceException("AI returned no structured output")
             latency = int((time.perf_counter() - started) * 1000)
+            result = parsed.model_dump(mode="json")
             await LlmRequest.record(
                 helper,
                 settings.OPENAI_MODEL,
                 masked_input,
-                parsed.model_dump(mode="json"),
+                result,
                 latency,
             )
+            usage = getattr(response, "usage", None)
+            tokens = (
+                f", {usage.input_tokens} tokens in, {usage.output_tokens} out"
+                if usage
+                else ""
+            )
+            logger.info(
+                f"AI helper {helper} answered in {latency}ms on {settings.OPENAI_MODEL}{tokens}"
+            )
+            if settings.LOG_AI_PAYLOADS:
+                logger.info(f"AI helper {helper} response: {json.dumps(result)}")
             return parsed
         except RETRYABLE as e:
             if attempt == MAX_RETRIES - 1:
@@ -100,6 +115,9 @@ async def parse(
                     f"AI helper {helper} failed after {MAX_RETRIES} attempts: {type(e).__name__}"
                 )
                 raise AIServiceException() from e
+            logger.warning(
+                f"AI helper {helper} attempt {attempt + 1} failed with {type(e).__name__}, retrying in {RETRY_DELAYS[attempt]}s"
+            )
             await asyncio.sleep(RETRY_DELAYS[attempt])
         except AIServiceException:
             await LlmRequest.record(

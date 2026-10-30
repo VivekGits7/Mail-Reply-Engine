@@ -24,6 +24,14 @@ async def log_action(
     await ActionLog.create(
         actor_type, actor_id, action, case_id, entity_type, entity_id, details or {}
     )
+    parts = [f"{action} by {actor_type}"]
+    if case_id:
+        parts.append(f"case {case_id}")
+    if entity_type and entity_id:
+        parts.append(f"{entity_type} {entity_id}")
+    if details:
+        parts.append(str(details))
+    logger.info(" | ".join(parts))
 
 
 async def log_user_action(user_id: uuid.UUID, action: str, **kwargs: Any) -> None:

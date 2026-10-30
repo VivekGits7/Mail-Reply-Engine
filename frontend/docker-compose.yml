@@ -1,0 +1,26 @@
+name: mail-reply-engine-frontend
+
+services:
+  mail-reply-engine-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_API_URL: ${APP_API_URL:?Set this value in frontend/.env}
+        APP_URL: ${APP_URL:?Set this value in frontend/.env}
+        APP_ENV: ${APP_ENV:-development}
+    image: tcg-mail-reply-engine-frontend:latest
+    container_name: mail-reply-engine-frontend
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT:-2102}
+      NGINX_ENVSUBST_FILTER: ^FRONTEND_PORT$
+    ports:
+      - "${FRONTEND_BIND:-0.0.0.0}:${FRONTEND_PORT:-2102}:${FRONTEND_PORT:-2102}"
+    networks:
+      - mail-reply-engine-network
+    restart: unless-stopped
+
+networks:
+  mail-reply-engine-network:
+    name: ${APP_NETWORK:-${MINIO_NETWORK:-mail-reply-engine-network}}
+    external: true

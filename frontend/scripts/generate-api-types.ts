@@ -21,7 +21,7 @@ interface OpenApiSpec {
 
 const SKIPPED = /^(Body_|.*ErrorResponse$|BadRequestResponse$|UnauthorizedResponse$|ForbiddenResponse$|NotFoundResponse$|ConflictResponse$|GoneResponse$|RateLimitResponse$|BadGatewayResponse$|ServiceUnavailableResponse$|ValidationErrorResponse$|ErrorBody$|ErrorDetail$)/;
 
-const source = process.argv[2] ?? 'http://localhost:8000/openapi.json';
+const source = process.argv[2] ?? new URL('/openapi.json', process.env.APP_API_URL ?? 'http://localhost:2101').href;
 const target = resolve(import.meta.dirname, '../src/types/schema.ts');
 
 async function loadSpec(): Promise<OpenApiSpec> {

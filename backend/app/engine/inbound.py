@@ -216,6 +216,10 @@ async def process_email(payload: Dict[str, Any], event: Optional[Event] = None) 
     )
     if email is None:
         return
+    logger.info(
+        f"Inbound email {email.email_id} received"
+        + (" with attachments" if message.has_attachments else "")
+    )
     await MailboxState.touch_email(settings.mailbox)
     await Email.adopt_conversation(message.conversation_id, thread_message_ids(message))
     reason = junk_reason(message, settings.mailbox)

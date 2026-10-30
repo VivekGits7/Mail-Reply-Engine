@@ -83,7 +83,7 @@ function NewTemplateDialog() {
         <DialogHeader>
           <DialogTitle>New email template</DialogTitle>
           <DialogDescription>
-            Give it a name and subject line to get started. You can edit the body after creating it.
+            Create a paused template, then add its body and activate it in the editor.
           </DialogDescription>
         </DialogHeader>
         <form id="new-template-form" noValidate onSubmit={handleSubmit} className="space-y-4 pt-1">
@@ -92,7 +92,7 @@ function NewTemplateDialog() {
               id="tpl-name"
               placeholder="Offer Letter"
               value={name}
-              maxLength={80}
+              maxLength={64}
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
@@ -106,17 +106,17 @@ function NewTemplateDialog() {
               id="tpl-key"
               placeholder="offer_letter"
               value={autoKey}
-              maxLength={80}
+              maxLength={64}
               onChange={(e) => {
                 setKeyTouched(true);
                 setTemplateKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
               }}
             />
           </Field>
-          <Field id="tpl-subject" label="Email subject line" hint="You can use {{placeholders}} here">
+          <Field id="tpl-subject" label="Email subject line" hint="Supports {{ company_name }} and {{ dashboard_link }}">
             <Input
               id="tpl-subject"
-              placeholder="Welcome to the team, {{full_name}}!"
+              placeholder="Welcome to {{ company_name }}!"
               value={subject}
               maxLength={200}
               onChange={(e) => setSubject(e.target.value)}

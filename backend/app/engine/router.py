@@ -147,6 +147,7 @@ async def get_case(
 
     - **case_id**: the case UUID, passed in the path
     - checklist is filled for onboarding cases, sessions for induction cases
+    - person includes last_working_day for exiting employees
     - complaints never show up here
     """
     try:

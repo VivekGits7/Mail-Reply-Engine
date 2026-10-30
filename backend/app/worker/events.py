@@ -69,6 +69,7 @@ async def process_event(event_id: uuid.UUID) -> None:
     try:
         await handler(event.payload, event)
         await event.mark_done()
+        logger.info(f"Event {event.event_type} {event.event_id} done")
     except PermanentEventError as e:
         logger.error(
             f"Event {event.event_type} {event.event_id} failed permanently: {e}"

@@ -1,5 +1,6 @@
 .env
-.env.test
+.env.*
+*.env
 logs/
 archive/
 .claude/
@@ -11,3 +12,6 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+
+.git/
+.DS_Store

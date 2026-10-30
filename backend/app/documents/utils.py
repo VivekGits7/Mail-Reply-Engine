@@ -166,8 +166,9 @@ def has_salary_content(text: str) -> bool:
     return len({match.lower() for match in WEAK_SALARY_TERMS.findall(text)}) >= 2
 
 
-def looks_like_photo(file_name: str, mime_type: str, chars: int) -> bool:
+def looks_like_photo(file_name: str, mime_type: str, chars: Optional[int]) -> bool:
     lowered = file_name.lower()
     if "photo" in lowered or "passport" in lowered or "pic" in lowered:
         return True
-    return mime_type in IMAGE_TYPES and chars < 20
+    # An image that was never read could be a scanned ID, so only the file name counts then.
+    return chars is not None and mime_type in IMAGE_TYPES and chars < 20

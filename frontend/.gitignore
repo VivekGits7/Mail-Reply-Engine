@@ -1,6 +1,6 @@
 node_modules
 dist
-.env
+*.env
 .env.*
 !.env.example
 *.local
@@ -8,3 +8,5 @@ dist
 *.tsbuildinfo
 .vercel
 coverage
+
+!.env.vm.example

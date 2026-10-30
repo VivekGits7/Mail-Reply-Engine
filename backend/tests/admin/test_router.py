@@ -281,5 +281,7 @@ async def test_root_health_and_openapi(client):
     health = await client.get("/health")
     assert health.status_code == 200 and health.json()["data"]["redis"] == "inline"
     spec = (await client.get("/openapi.json")).json()
-    operations = sum(len(item) for item in spec["paths"].values())
-    assert operations == 64
+    assert {"/api/auth/login", "/api/joiners", "/api/cases/{case_id}", "/api/templates"} <= spec["paths"].keys()
+    create = spec["paths"]["/api/templates"]["post"]
+    assert "201" in create["responses"]
+    assert create["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith("/CreateTemplateRequest")

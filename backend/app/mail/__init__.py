@@ -16,3 +16,27 @@ from app.mail.utils import (
     thread_message_ids,
     visible_text,
 )
+
+__all__ = [
+    "Attachment",
+    "DeliveryResult",
+    "Email",
+    "Outbound",
+    "Template",
+    "TemplateRenderError",
+    "attachments_router",
+    "clean_addresses",
+    "deliver",
+    "full_text",
+    "html_grid",
+    "html_list",
+    "html_table",
+    "html_to_text",
+    "junk_reason",
+    "seed_templates",
+    "sou_router",
+    "team_addresses",
+    "templates_router",
+    "thread_message_ids",
+    "visible_text",
+]

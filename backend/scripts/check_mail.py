@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-# Lets `guvrun scripts/<name>.py` import app the same way `-m scripts.<name>` does.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import settings

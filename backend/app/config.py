@@ -25,14 +25,14 @@ class Settings(BaseSettings):
     APP_NAME: str = Field(default="Mail Reply Engine", description="Application name")
     APP_VERSION: str = Field(default="2.0.0", description="Application version")
     HOST: str = Field(default="0.0.0.0", description="Server host")
-    PORT: int = Field(default=8000, description="Server port")
+    PORT: int = Field(default=2101, description="Server port")
     ENVIRONMENT: str = Field(default="development", description="Runtime environment")
     LOG_LEVEL: str = Field(default="INFO", description="Root log level")
     CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000"], description="Allowed origins in production"
+        default=["http://localhost:2102"], description="Allowed origins in production"
     )
     FRONTEND_URL: str = Field(
-        default="http://localhost:3000",
+        default="http://localhost:2102",
         description="Dashboard URL used in alert emails",
     )
     TIMEZONE: str = Field(
@@ -113,11 +113,11 @@ class Settings(BaseSettings):
 
     # OBJECT STORAGE
     S3_ENDPOINT_URL: str = Field(
-        default="http://localhost:9100",
+        default="http://localhost:2103",
         description="MinIO endpoint used by the backend",
     )
     S3_PUBLIC_ENDPOINT_URL: str = Field(
-        default="http://localhost:9100",
+        default="http://localhost:2103",
         description="MinIO endpoint used to sign browser links",
     )
     S3_BUCKET: str = Field(
@@ -154,6 +154,9 @@ class Settings(BaseSettings):
     )
     LLM_AUDIT_RETENTION_DAYS: int = Field(
         default=30, description="Days masked AI requests are kept"
+    )
+    LOG_AI_PAYLOADS: bool = Field(
+        default=False, description="Writes masked AI requests and replies to the app log"
     )
 
     # PRIVACY

@@ -16,6 +16,7 @@ PERSON_EXAMPLE = {
     "location": "Kolkata",
     "hire_category": "lateral",
     "joining_date": "2026-11-16",
+    "last_working_day": None,
     "date_of_birth": "1990-02-20",
     "manager_name": "Amit Roy",
     "manager_email": "amit.roy@tcgdigital.com",
@@ -56,6 +57,11 @@ class PersonData(BaseModel):
     )
     joining_date: Optional[str] = Field(
         default=None, description="Joining date", examples=["2026-11-16"]
+    )
+    last_working_day: Optional[str] = Field(
+        default=None,
+        description="Last working date for an exiting employee",
+        examples=["2026-11-30"],
     )
     date_of_birth: Optional[str] = Field(
         default=None, description="Date of birth", examples=["1990-02-20"]
@@ -102,6 +108,9 @@ def to_person_data(person: Person) -> PersonData:
         location=person.location,
         hire_category=person.hire_category.value if person.hire_category else None,
         joining_date=person.joining_date.isoformat() if person.joining_date else None,
+        last_working_day=person.last_working_day.isoformat()
+        if person.last_working_day
+        else None,
         date_of_birth=person.date_of_birth.isoformat()
         if person.date_of_birth
         else None,

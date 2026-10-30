@@ -9,37 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDate } from '@/utils/utility';
 import type { JoinerListItem } from '@/types';
 
-// Sample rows shown only when there isn't enough real data yet, so the table preview doesn't look empty.
-const PLACEHOLDER_ITEMS: Partial<JoinerListItem>[] = [
-  {
-    case_id: 'sample-1',
-    full_name: 'Sample Joiner',
-    joining_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    docs_verified: 1,
-    docs_total: 3,
-  },
-  {
-    case_id: 'sample-2',
-    full_name: 'Sample Candidate',
-    joining_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-    docs_verified: 0,
-    docs_total: 3,
-  },
-];
-
-const MIN_ROWS = 3;
-
 interface OnboardingCardsProps {
-  items?: Partial<JoinerListItem>[];
+  items?: JoinerListItem[];
   loading: boolean;
   error: unknown;
   onRetry: () => void;
 }
 
 export function OnboardingCards({ items, loading, error, onRetry }: OnboardingCardsProps) {
-  const rows = items?.length
-    ? [...items, ...PLACEHOLDER_ITEMS.slice(0, Math.max(0, MIN_ROWS - items.length))]
-    : items;
+  const rows = items;
   return (
     <section aria-labelledby="onboarding-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
       <SectionHeading
@@ -68,7 +46,6 @@ export function OnboardingCards({ items, loading, error, onRetry }: OnboardingCa
             </TableHeader>
             <TableBody>
               {rows.map((item) => {
-                const isSample = item.case_id?.startsWith('sample-');
                 const nameplate = (
                   <>
                     <Avatar name={item.full_name ?? 'Joiner'} size="sm" />
@@ -78,16 +55,12 @@ export function OnboardingCards({ items, loading, error, onRetry }: OnboardingCa
                 return (
                   <TableRow key={item.case_id}>
                     <TableCell className="max-w-64 whitespace-normal">
-                      {isSample ? (
-                        <span className="flex items-center gap-3 font-medium">{nameplate}</span>
-                      ) : (
-                        <Link
-                          to={`/cases/${item.case_id}`}
-                          className="flex items-center gap-3 font-medium hover:text-primary hover:underline"
-                        >
-                          {nameplate}
-                        </Link>
-                      )}
+                      <Link
+                        to={`/cases/${item.case_id}`}
+                        className="flex items-center gap-3 font-medium hover:text-primary hover:underline"
+                      >
+                        {nameplate}
+                      </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {item.joining_date ? formatDate(item.joining_date) : 'Not set'}

@@ -17,6 +17,8 @@ RUN uv sync --frozen --no-install-project --no-dev
 
 COPY . /app/
 
+EXPOSE 2101
+
 ENTRYPOINT ["/app/.venv/bin/uvicorn"]
 
-CMD ["app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["app.main:app", "--host", "0.0.0.0", "--port", "2101", "--workers", "1"]

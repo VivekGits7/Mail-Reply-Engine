@@ -17,15 +17,6 @@
 - **If we ship this stack to a client:** include the AGPL text and a link to the exact MinIO source used
 - MinIO Inc. reads the AGPL broadly, so get a quick legal sign-off before shipping this stack to a client
 
-## Project status
-
-- **May 2025:** admin features were removed from the free console
-- **Oct 2025:** official binaries and Docker images stopped, the project is source only
-- **Dec 2025:** the repo moved to maintenance mode, with security fixes decided case by case
-- **2026:** the repo is reported archived and read-only
-- Chainguard still rebuilds the image daily
-- Reports say Chainguard builds from `pgsty/silo`, a maintained AGPL fork. This comes from issue threads, not an official notice
-
 ## Data we store
 
 - **Candidate documents** such as PAN, Aadhaar, certificates and photos
@@ -45,17 +36,6 @@
   - Private bucket, presigned links only
 - Extracted document text is never written to MinIO or the database
 
-## Security controls in this stack
-
-- **Encryption at rest:** SSE-S3 on the whole bucket, using `MINIO_KMS_SECRET_KEY`, set up by `init.sh`. MinIO uses authenticated encryption, AES-256-GCM or ChaCha20-Poly1305
-- **No public access:** the anonymous policy is set to none in `init.sh`
-- **Least privilege:** the backend user can only get, put, delete and list inside one bucket, through the policy in `init.sh`
-- **Root kept away from the app:** the root user is only for the console and the init job
-- **Network exposure:** the API and console are bound to 127.0.0.1 in `docker-compose.yml`
-- **Short-lived access:** SigV4 presigned links that expire after 300 seconds, and every link is logged in `action_log`
-- **Upload origin lock:** CORS allows only the dashboard origin, set by `MINIO_CORS_ALLOW_ORIGIN`
-- **Secrets:** `.env` is gitignored and `chmod 600`, and secrets are generated, never typed by hand
-
 ## Risks and mitigations
 
 - **Upstream is frozen**
@@ -70,13 +50,6 @@
 - **Leaked root password**
   - Impact: full control of the storage
   - Mitigation: a localhost-only console, the app never uses root, and secret rotation
-
-## Exit plan
-
-- The backend only uses the S3 API, so swapping storage needs no backend code change
-- If security rejects MinIO, switch to another S3-compatible store such as SeaweedFS, which is Apache 2.0
-- Point `S3_ENDPOINT_URL` and the keys at the new store
-- Copy the existing objects across with `mc mirror`
 
 ## Sources
 

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.common.schemas import BaseResponse
 
@@ -71,6 +71,46 @@ class TemplateResponse(BaseResponse):
                 "success": True,
                 "message": "Template retrieved",
                 "data": TEMPLATE_EXAMPLE,
+            }
+        }
+    )
+
+
+class CreateTemplateRequest(BaseModel):
+    template_key: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        pattern="^[a-z0-9_]+$",
+        description="Unique lowercase template key",
+        examples=["custom_welcome"],
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Template display name",
+        examples=["Custom welcome"],
+    )
+    subject: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Email subject with supported placeholders",
+        examples=["Welcome to {{ company_name }}"],
+    )
+
+    @field_validator("name", "subject", mode="before")
+    @classmethod
+    def strip_text(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "template_key": "custom_welcome",
+                "name": "Custom welcome",
+                "subject": "Welcome to {{ company_name }}",
             }
         }
     )

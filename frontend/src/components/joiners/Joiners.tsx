@@ -34,9 +34,9 @@ import { joinerListQuery } from './Joinersapi';
 
 const SORT_OPTIONS: SortOption[] = [
   { label: 'Newest first', sort_by: 'created_at', sort_order: 'latest' },
-  { label: 'Joining soonest', sort_by: 'joining_date', sort_order: 'oldest' },
-  { label: 'Joining latest', sort_by: 'joining_date', sort_order: 'latest' },
-  { label: 'Recently updated', sort_by: 'updated_at', sort_order: 'latest' },
+  { label: 'Joining soonest', sort_by: 'joining_date', sort_order: 'a_to_z' },
+  { label: 'Joining latest', sort_by: 'joining_date', sort_order: 'z_to_a' },
+  { label: 'Recently updated', sort_by: 'updated_at', sort_order: 'z_to_a' },
   { label: 'Name A to Z', sort_by: 'full_name', sort_order: 'a_to_z' },
 ];
 

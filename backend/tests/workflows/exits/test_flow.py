@@ -222,3 +222,10 @@ async def test_low_confidence_clearance_reply_flags_hr(client, admin_headers, en
     await process_email({"graph_message_id": message_id})
     case, _ = await clearances(client, admin_headers, data["case_id"])
     assert "needs_hr" in case["case"]["flags"]
+
+
+async def test_exit_detail_exposes_last_working_day(client, admin_headers):
+    created = await create_exit(client, admin_headers)
+    response = await client.get(f"/api/cases/{created['case_id']}", headers=admin_headers)
+    assert response.status_code == 200
+    assert response.json()["data"]["person"]["last_working_day"] == EXIT["last_working_day"]

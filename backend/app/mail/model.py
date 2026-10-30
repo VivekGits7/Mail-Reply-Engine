@@ -697,6 +697,33 @@ class Template:
         return cls(**dict(row)) if row else None
 
     @classmethod
+    async def create(
+        cls,
+        template_key: str,
+        name: str,
+        subject: str,
+        placeholders: List[str],
+        user_id: uuid.UUID,
+    ) -> Optional["Template"]:
+        row = await execute_command_with_return(
+            """
+            INSERT INTO templates
+                (template_id, template_key, name, subject, body_html, placeholders, is_active, updated_by)
+            VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7)
+            ON CONFLICT (template_key) DO NOTHING
+            RETURNING *
+            """,
+            uuid.uuid4(),
+            template_key,
+            name,
+            subject,
+            "<p></p>",
+            placeholders,
+            user_id,
+        )
+        return cls(**dict(row)) if row else None
+
+    @classmethod
     async def search(
         cls, search: Optional[str], is_active: Optional[bool]
     ) -> List["Template"]:

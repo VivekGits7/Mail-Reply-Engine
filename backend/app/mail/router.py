@@ -11,6 +11,7 @@ from app.common.schemas import (
     COMMON_ERROR_RESPONSES,
     BadGatewayResponse,
     BadRequestResponse,
+    ConflictResponse,
     ForbiddenResponse,
     GoneResponse,
     NotFoundResponse,
@@ -19,6 +20,7 @@ from app.config import settings
 from app.error import (
     AppException,
     BadRequestException,
+    ConflictException,
     ForbiddenException,
     GoneException,
     NotFoundException,
@@ -30,6 +32,7 @@ from app.mail.model import Attachment, Template
 from app.mail.schemas import (
     AttachmentData,
     AttachmentResponse,
+    CreateTemplateRequest,
     PreviewData,
     PreviewResponse,
     PreviewTemplateRequest,
@@ -101,6 +104,69 @@ async def list_templates(
         raise
     except Exception as e:
         logger.error(f"List templates error: {type(e).__name__}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@templates_router.post(
+    "",
+    response_model=TemplateResponse,
+    status_code=201,
+    summary="Create an email template",
+    responses={
+        **COMMON_ERROR_RESPONSES,
+        201: {"model": TemplateResponse, "description": "Paused template created"},
+        400: {
+            "model": BadRequestResponse,
+            "description": "Unknown placeholder or invalid template syntax",
+        },
+        403: {
+            "model": ForbiddenResponse,
+            "description": "Only HR admins can create templates",
+        },
+        409: {"model": ConflictResponse, "description": "Template key already exists"},
+    },
+)
+@limiter.limit("30/minute")
+async def create_template(
+    request: Request,
+    data: CreateTemplateRequest,
+    current_user: User = Depends(require_admin),
+) -> TemplateResponse:
+    """
+    Create a paused email template for editing.
+
+    - **template_key**: required string, 1 to 64 lowercase letters, digits or underscores
+    - **name**: required string, 1 to 255 characters
+    - **subject**: required string, 1 to 500 characters
+    - custom templates support company_name and dashboard_link placeholders
+    - only HR admins can create templates, save the body and activate it in the editor
+    """
+    try:
+        validate_source(data.template_key, data.subject, None)
+        template = await Template.create(
+            data.template_key,
+            data.name,
+            data.subject,
+            sorted(allowed_placeholders(data.template_key)),
+            current_user.user_id,
+        )
+        if template is None:
+            raise ConflictException("Template key already exists")
+        await log_user_action(
+            current_user.user_id,
+            "template_created",
+            entity_type="template",
+            details={"template_key": template.template_key},
+        )
+        return TemplateResponse(
+            success=True,
+            message="Template created",
+            data=TemplateData(**template.to_dict()),
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"Create template error: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

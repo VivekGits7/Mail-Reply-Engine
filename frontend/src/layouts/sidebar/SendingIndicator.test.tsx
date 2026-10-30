@@ -22,7 +22,7 @@ describe('SendingRailIndicator', () => {
     setStatus(false, true, 'hr-test@tcgdigital.com');
     renderWithProviders(<SendingRailIndicator />);
 
-    await userEvent.setup().click(await screen.findByRole('button', { name: /^Dry run\./ }));
+    await userEvent.setup().click(await screen.findByRole('button', { name: /^Test mode\./ }));
     expect(await screen.findByText(/every email goes to hr-test@tcgdigital.com/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open controls' })).toHaveAttribute('href', '/#admin-controls');
   });

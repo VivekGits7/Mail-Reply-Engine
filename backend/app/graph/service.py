@@ -54,6 +54,8 @@ async def poll_mailbox() -> int:
         return 0
     state = await MailboxState.get(settings.mailbox)
     message_ids, delta_link = await mail.delta(state.delta_link)
+    if message_ids:
+        logger.info(f"Mailbox poll found {len(message_ids)} new email(s)")
     for message_id in message_ids:
         await queue_message(message_id)
     await state.save_delta(delta_link)

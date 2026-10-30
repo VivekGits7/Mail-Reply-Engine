@@ -112,6 +112,8 @@ def test_file_helpers():
     assert looks_like_photo("ManojMaraskolhe_Photo.JPG", "image/jpeg", 300)
     assert looks_like_photo("img.png", "image/png", 0)
     assert not looks_like_photo("pan.pdf", "application/pdf", 0)
+    assert looks_like_photo("passport.jpg", "image/jpeg", None)
+    assert not looks_like_photo("PAN CARD.jpg", "image/jpeg", None)
 
 
 def test_joiner_name_is_found_inside_free_text():

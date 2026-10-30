@@ -12,37 +12,15 @@ import type { ApprovalListItem } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = { reply: 'Reply draft', induction_schedule: 'Induction plan' };
 
-// Sample rows shown only when there isn't enough real data yet, so the table preview doesn't look empty.
-const PLACEHOLDER_ITEMS: Partial<ApprovalListItem>[] = [
-  {
-    approval_id: 'sample-1',
-    approval_type: 'reply',
-    summary: 'Sample draft — query reply',
-    person_name: 'Sample Candidate',
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    approval_id: 'sample-2',
-    approval_type: 'induction_schedule',
-    summary: 'Sample draft — induction plan',
-    person_name: 'Sample Joiner',
-    created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const MIN_ROWS = 3;
-
 interface WaitingForHrProps {
-  items?: Partial<ApprovalListItem>[];
+  items?: ApprovalListItem[];
   loading: boolean;
   error: unknown;
   onRetry: () => void;
 }
 
 export function WaitingForHr({ items, loading, error, onRetry }: WaitingForHrProps) {
-  const rows = items?.length
-    ? [...items, ...PLACEHOLDER_ITEMS.slice(0, Math.max(0, MIN_ROWS - items.length))]
-    : items;
+  const rows = items;
   return (
     <section aria-labelledby="waiting-title" className="flex min-w-0 flex-col panel p-5 sm:p-6">
       <SectionHeading
@@ -73,7 +51,6 @@ export function WaitingForHr({ items, loading, error, onRetry }: WaitingForHrPro
               {rows.map((item) => {
                 const type = item.approval_type ?? 'reply';
                 const Icon = type === 'reply' ? MailCheck : Presentation;
-                const isSample = item.approval_id?.startsWith('sample-');
                 const draftplate = (
                   <>
                     <span
@@ -95,16 +72,12 @@ export function WaitingForHr({ items, loading, error, onRetry }: WaitingForHrPro
                 return (
                   <TableRow key={item.approval_id}>
                     <TableCell className="max-w-72 whitespace-normal">
-                      {isSample ? (
-                        <span className="flex items-start gap-2.5 font-medium">{draftplate}</span>
-                      ) : (
-                        <Link
-                          to={`/approvals/${item.approval_id}`}
-                          className="flex items-start gap-2.5 font-medium hover:text-primary hover:underline"
-                        >
-                          {draftplate}
-                        </Link>
-                      )}
+                      <Link
+                        to={`/approvals/${item.approval_id}`}
+                        className="flex items-start gap-2.5 font-medium hover:text-primary hover:underline"
+                      >
+                        {draftplate}
+                      </Link>
                     </TableCell>
                     <TableCell>
                       {item.person_name ? (

@@ -8,3 +8,16 @@ from app.auth.service import (
     require_admin,
     require_complaints_access,
 )
+
+__all__ = [
+    "RevokedToken",
+    "User",
+    "UserRole",
+    "UserSortBy",
+    "auth_router",
+    "get_current_user",
+    "hash_password",
+    "require_admin",
+    "require_complaints_access",
+    "users_router",
+]

@@ -160,7 +160,6 @@ export interface CaseData {
   parent_case_id?: string | null;
   opened_at?: string | null;
   closed_at?: string | null;
-  last_working_day?: string | null;
 }
 
 export interface CaseDetailData {
@@ -410,6 +409,12 @@ export interface CreateRuleRequest {
   escalate_to_email?: string | null;
   is_active?: boolean;
   rule_key: string;
+}
+
+export interface CreateTemplateRequest {
+  template_key: string;
+  name: string;
+  subject: string;
 }
 
 export interface CreateUserRequest {
@@ -762,6 +767,7 @@ export interface PersonData {
   location?: string | null;
   hire_category?: string | null;
   joining_date?: string | null;
+  last_working_day?: string | null;
   date_of_birth?: string | null;
   manager_name?: string | null;
   manager_email?: string | null;
