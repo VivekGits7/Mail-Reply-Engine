@@ -99,7 +99,7 @@ The runner reads `.sql` files directly from `backend/database/` and loads databa
 ```bash
 cd /home/appadmin/mail-reply-engine/backend
 docker compose run --rm --entrypoint /app/.venv/bin/python mail-reply-engine-backend \
-  scripts/create_admin.py --name "TCG User" --email tcg@tcgdigital.com
+  scripts/create_admin.py --name "TCG Hr" --email hr.tcg@tcgdigital.com
 ```
 
 ## Frontend
